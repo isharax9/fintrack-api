@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String         @id @default(cuid())
+  name         String
+  email        String         @unique
+  password     String
+  currency     String         @default("USD")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  transactions Transaction[]
+  categories   Category[]
+  budgetGoals  BudgetGoal[]
+}
+
+model Transaction {
+  id         String          @id @default(cuid())
+  userId     String
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String
+  amount     Decimal         @db.Decimal(10, 2)
+  type       TransactionType
+  categoryId String
+  category   Category        @relation(fields: [categoryId], references: [id])
+  date       DateTime
+  notes      String?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+}
+
+model Category {
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  color        String
+  icon         String
+  isDefault    Boolean       @default(false)
+  transactions Transaction[]
+  budgetGoals  BudgetGoal[]
+}
+
+model BudgetGoal {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+  limitAmount Decimal  @db.Decimal(10, 2)
+  month       Int
+  year        Int
+  createdAt   DateTime @default(now())
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}

@@ -1,0 +1,67 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: fintrack_db
+    environment:
+      POSTGRES_USER: fintrack_user
+      POSTGRES_PASSWORD: fintrack_password
+      POSTGRES_DB: fintrack_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fintrack_user -d fintrack_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: fintrack_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fintrack_api
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "5001:5001"
+    environment:
+      - DATABASE_URL=postgresql://fintrack_user:fintrack_password@db:5432/fintrack_db?schema=public
+      - REDIS_URL=redis://redis:6379
+      - ACCESS_TOKEN_SECRET=super_secret_access_token_key_123!
+      - REFRESH_TOKEN_SECRET=super_secret_refresh_token_key_123!
+      - ACCESS_TOKEN_EXPIRES_IN=15m
+      - REFRESH_TOKEN_EXPIRES_IN=7d
+      - BCRYPT_SALT_ROUNDS=12
+      - SMTP_HOST=smtp.ethereal.email
+      - SMTP_PORT=587
+      - SMTP_USER=test_user
+      - SMTP_PASS=test_pass
+      - EMAIL_FROM=FinTrack <noreply@fintrack.dev>
+      - APP_NAME=FinTrack
+      - FRONTEND_URL=http://localhost:3002
+      - PORT=5001
+    # Command to run push migrations before starting
+    command: sh -c "npx prisma db push && npx prisma db seed && npm run start"
+    volumes:
+      - ./prisma:/app/prisma
+
+volumes:
+  postgres_data:
+  redis_data:

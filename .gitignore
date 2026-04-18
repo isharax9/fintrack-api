@@ -1,0 +1,56 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# TypeScript v1-v2 build artifacts
+dist/
+out-tsc/
+build/
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# Prisma
+/prisma/*.db
+/prisma/*.db-journal
+
+# Docker
+.dockerignore
+# (Keeping docker-compose.yml as it usually contains configuration)
+
+# Misc
+.npm
+.eslintcache
+.stylelintcache
+.cache
+.parcel-cache
+.next
+.nuxt
+.vuepress/dist
+.temp
+.cache/
+.history
