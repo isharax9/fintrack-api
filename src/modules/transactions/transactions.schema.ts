@@ -8,6 +8,8 @@ export const createTransactionSchema = z.object({
   categoryId: z.string().cuid(),
   date: z.string().datetime(),
   notes: z.string().optional(),
+  accountId: z.string().cuid().optional(),
+  tagIds: z.array(z.string().cuid()).optional(),
 });
 
 export const updateTransactionSchema = createTransactionSchema.partial();
@@ -15,6 +17,7 @@ export const updateTransactionSchema = createTransactionSchema.partial();
 export const transactionQuerySchema = z.object({
   type: z.nativeEnum(TransactionType).optional(),
   categoryId: z.string().cuid().optional(),
+  accountId: z.string().cuid().optional(),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
   page: z.coerce.number().min(1).default(1),

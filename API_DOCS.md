@@ -769,6 +769,93 @@ These 10 categories are auto-created when a user registers:
 
 ---
 
+### 7. Accounts
+
+#### `GET /api/accounts` 🔒
+List all accounts.
+
+#### `POST /api/accounts` 🔒
+Create an account. Types: `BANK`, `CASH`, `CREDIT`, `WALLET`.
+
+#### `PUT /api/accounts/:id` 🔒
+Update account details.
+
+#### `DELETE /api/accounts/:id` 🔒
+Delete an account.
+
+---
+
+### 8. Transfers
+
+#### `GET /api/transfers` 🔒
+List all transfers.
+
+#### `POST /api/transfers` 🔒
+Transfer money from one account to another. Automatically adjusts both account balances.
+
+---
+
+### 9. Tags
+
+#### `GET /api/tags` 🔒
+List all tags.
+
+#### `POST /api/tags` 🔒
+Create a tag.
+
+#### `PUT /api/tags/:id` 🔒
+Update a tag.
+
+#### `DELETE /api/tags/:id` 🔒
+Delete a tag.
+
+---
+
+### 10. Savings & Rollover
+
+#### `GET /api/savings/bucket` 🔒
+Get the main savings bucket. This bucket accumulates unused budget limits at the end of each month automatically.
+
+#### `GET /api/savings/goals` 🔒
+List specific savings goals.
+
+#### `POST /api/savings/goals` 🔒
+Create a savings goal.
+
+#### `POST /api/savings/goals/:id/allocate` 🔒
+Move funds from the main Savings Bucket into this specific savings goal.
+
+---
+
+### 11. PDF Exports
+
+#### `GET /api/exports/transactions/pdf` 🔒
+Streams a downloadable PDF table of your latest transactions.
+
+#### `GET /api/exports/reports/pdf?month=4&year=2026` 🔒
+Streams a downloadable PDF monthly report containing basic stats and an account overview.
+
+---
+
+## Default Categories
+
+These 10 categories are auto-created when a user registers:
+
+| Name            | Color     | Icon              |
+|-----------------|-----------|--------------------|
+| Food & Dining   | `#FF6B6B` | `utensils`         |
+| Transport       | `#4ECDC4` | `car`              |
+| Housing         | `#45B7D1` | `home`             |
+| Entertainment   | `#96CEB4` | `film`             |
+| Shopping        | `#FFEAA7` | `shopping-bag`     |
+| Health          | `#DDA0DD` | `heart`            |
+| Education       | `#98D8C8` | `book`             |
+| Savings         | `#7EC8E3` | `piggy-bank`       |
+| Income          | `#90EE90` | `trending-up`      |
+| Other           | `#D3D3D3` | `more-horizontal`  |
+
+---
+
 ## Architecture Overview
 
 ```
@@ -777,12 +864,18 @@ fintrack-api/
 │   ├── config/          # env, db (Prisma), redis
 │   ├── middleware/       # JWT authentication guard
 │   ├── modules/
+│   │   ├── accounts/    # account/wallet management
 │   │   ├── auth/        # register, login, refresh, logout, OTP flow
-│   │   ├── user/        # profile CRUD
-│   │   ├── categories/  # category CRUD
-│   │   ├── transactions/# transaction CRUD + filters
 │   │   ├── budgetGoals/ # budget goal CRUD
-│   │   └── reports/     # summary, by-category, trend
+│   │   ├── categories/  # category CRUD
+│   │   ├── cron/        # scheduled background jobs
+│   │   ├── exports/     # dynamic PDF generation
+│   │   ├── reports/     # summary, by-category, trend
+│   │   ├── savings/     # rollover logic and savings goals
+│   │   ├── tags/        # custom metadata tags
+│   │   ├── transactions/# transaction CRUD + filters
+│   │   ├── transfers/   # account to account transfers
+│   │   └── user/        # profile CRUD
 │   ├── plugins/         # cors, helmet, rate-limit
 │   ├── utils/           # jwt, hash, email helpers
 │   ├── app.ts           # Fastify app builder
@@ -790,9 +883,8 @@ fintrack-api/
 ├── prisma/
 │   ├── schema.prisma    # Database models
 │   └── seed.ts          # Seed script
-├── Dockerfile           # Multi-stage production build
-├── docker-compose.yml   # PostgreSQL + Redis + API
-└── package.json
+├── package.json
+└── docker-compose.yml   # PostgreSQL + Redis + API
 ```
 
 ### Docker Services

@@ -15,6 +15,14 @@ import transactionsRoutes from './modules/transactions/transactions.routes';
 import budgetGoalsRoutes from './modules/budgetGoals/budgetGoals.routes';
 import reportsRoutes from './modules/reports/reports.routes';
 
+import accountsRoutes from './modules/accounts/accounts.routes';
+import transfersRoutes from './modules/transfers/transfers.routes';
+import tagsRoutes from './modules/tags/tags.routes';
+import savingsRoutes from './modules/savings/savings.routes';
+import exportsRoutes from './modules/exports/exports.routes';
+
+import { initCronJobs } from './modules/cron/scheduler';
+
 declare module 'fastify' {
   export interface FastifyInstance {
     authenticate: typeof authenticate;
@@ -41,6 +49,15 @@ export function buildApp() {
   app.register(transactionsRoutes, { prefix: '/api/transactions' });
   app.register(budgetGoalsRoutes, { prefix: '/api/budget-goals' });
   app.register(reportsRoutes, { prefix: '/api/reports' });
+  
+  app.register(accountsRoutes, { prefix: '/api/accounts' });
+  app.register(transfersRoutes, { prefix: '/api/transfers' });
+  app.register(tagsRoutes, { prefix: '/api/tags' });
+  app.register(savingsRoutes, { prefix: '/api/savings' });
+  app.register(exportsRoutes, { prefix: '/api/exports' });
+
+  // Initialize background tasks
+  initCronJobs();
 
   // Healthcheck
   app.get('/health', async () => {
@@ -49,3 +66,4 @@ export function buildApp() {
 
   return app;
 }
+
