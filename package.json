@@ -4,9 +4,9 @@
   "description": "FinTrack Backend MVP",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "tsx watch src/bootstrap.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "node dist/bootstrap.js",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push"
   },
