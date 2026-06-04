@@ -11,10 +11,11 @@ export default fp(async (fastify) => {
     'http://127.0.0.1:3000',
     'http://127.0.0.1:3001',
     'http://127.0.0.1:3002',
+    'http://[::1]:3000',
   ]);
 
   const isLocalOrigin = (origin: string) =>
-    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+    /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin);
 
   fastify.register(cors, {
     origin: (origin, cb) => {
@@ -23,6 +24,7 @@ export default fp(async (fastify) => {
         cb(null, true);
         return;
       }
+      fastify.log.warn(`CORS blocked for origin: ${origin}`);
       cb(new Error('Not allowed by CORS'), false);
     },
     credentials: true,
