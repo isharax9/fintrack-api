@@ -1,306 +1,290 @@
-# FinTrack Web — Frontend MVP Specification
+# FinTrack Web Product Specification
 
-> **Repo:** `fintrack-web`  
-> **Backend API:** `http://localhost:5001` (see `fintrack-api/API_DOCS.md`)
+Repo: `../fintrack-web`
 
----
+Backend API: `http://localhost:5001`
 
-## Tech Stack
+Last reviewed: 2026-06-05
 
-- **Framework:** Next.js 14 (App Router)
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS + shadcn/ui
-- **State Management:** Zustand
-- **Server State:** TanStack Query v5
-- **Charts:** Recharts
-- **Forms:** React Hook Form + Zod
-- **HTTP Client:** Axios with interceptors
-- **Auth:** Custom JWT (access token in memory, refresh token via httpOnly cookie)
-- **Notifications:** Sonner (toast)
-- **Icons:** Lucide React
+## Current Frontend State
 
----
+The web app already exists and builds successfully with Next.js.
 
-## Environment Variables
+Implemented routes:
 
-```env
-NEXT_PUBLIC_API_URL=http://localhost:5001
-```
+- `/login`
+- `/register`
+- `/forgot-password`
+- `/verify-otp`
+- `/reset-password`
+- `/dashboard`
+- `/transactions`
+- `/budget-goals`
+- `/reports`
+- `/savings`
+- `/recurring`
+- `/settings`
 
----
+Current stack:
 
-## Folder Structure
+- Next.js 16 App Router
+- React 19
+- TypeScript
+- Tailwind CSS 4
+- TanStack Query
+- Zustand
+- Axios
+- React Hook Form
+- Zod
+- Recharts
+- Sonner
+- Lucide React
 
-```
-fintrack-web/
-├── app/
-│   ├── (auth)/
-│   │   ├── login/page.tsx
-│   │   ├── register/page.tsx
-│   │   ├── forgot-password/page.tsx
-│   │   ├── verify-otp/page.tsx
-│   │   └── reset-password/page.tsx
-│   ├── (dashboard)/
-│   │   ├── layout.tsx              # sidebar + navbar layout
-│   │   ├── dashboard/page.tsx
-│   │   ├── transactions/page.tsx
-│   │   ├── budget-goals/page.tsx
-│   │   ├── reports/page.tsx
-│   │   └── settings/page.tsx
-│   ├── api/
-│   │   └── auth/
-│   │       └── refresh/route.ts    # Next.js route handler for silent refresh
-│   ├── layout.tsx
-│   └── page.tsx                    # redirects to /dashboard or /login
-├── components/
-│   ├── ui/                         # shadcn components
-│   ├── layout/
-│   │   ├── Sidebar.tsx
-│   │   └── Navbar.tsx
-│   ├── dashboard/
-│   │   ├── BalanceCard.tsx
-│   │   ├── SpendingSummary.tsx
-│   │   ├── RecentTransactions.tsx
-│   │   ├── BudgetProgressList.tsx
-│   │   └── TrendChart.tsx
-│   ├── transactions/
-│   │   ├── TransactionTable.tsx
-│   │   ├── TransactionModal.tsx
-│   │   └── TransactionFilters.tsx
-│   ├── budget-goals/
-│   │   ├── GoalCard.tsx
-│   │   └── GoalModal.tsx
-│   ├── reports/
-│   │   ├── CategoryPieChart.tsx
-│   │   └── MonthlyBarChart.tsx
-│   └── shared/
-│       ├── EmptyState.tsx
-│       ├── LoadingSpinner.tsx
-│       └── ConfirmDialog.tsx
-├── lib/
-│   ├── axios.ts                    # Axios instance + interceptors
-│   ├── queryClient.ts
-│   └── utils.ts
-├── hooks/
-│   ├── useAuth.ts
-│   ├── useTransactions.ts
-│   ├── useCategories.ts
-│   ├── useBudgetGoals.ts
-│   └── useReports.ts
-├── store/
-│   └── authStore.ts                # Zustand: user, accessToken
-├── types/
-│   └── index.ts                    # TypeScript types matching backend models
-├── .env.example
-├── middleware.ts                    # Next.js middleware for route protection
-└── tsconfig.json
-```
+## Verification Results
 
----
+From `../fintrack-web`:
 
-## Auth Flow
+- `npm run build` passes.
+- `npm run lint` fails with 11 errors and 26 warnings.
 
-### Token Storage
-- **Access Token:** in Zustand memory (NOT localStorage, NOT cookies)
-- **Refresh Token:** sent to/from backend; stored in Redis server-side
-- **On app load:** call `POST /api/auth/refresh` silently to restore session
-- **On 401:** Axios response interceptor → call refresh → retry original request
+Lint issues to fix:
 
-### Axios Interceptor Logic
-```
-Request  → attach accessToken from Zustand to Authorization header
-Response → on 401: call refresh → retry original request
-         → on refresh failure: clear auth state → redirect /login
-```
+- Replace `any` icon lookup patterns with typed `Record<string, LucideIcon>` helpers.
+- Fix `ThemeToggle` state initialization and function declaration order.
+- Remove unused imports and unused variables.
+- Review React Hook Form `watch` warning in `TransactionModal`.
 
-### Next.js Middleware (`middleware.ts`)
-- Protect all `/(dashboard)/*` routes
-- Redirect unauthenticated users to `/login`
-- Redirect authenticated users away from `/login` and `/register`
+## Auth Reality Check
 
----
+The old spec said:
 
-## Pages
+- Access token in memory.
+- Refresh token in httpOnly cookie.
 
-### Auth Pages
+Current implementation:
 
-| Page             | Route               | Fields                                        |
-|------------------|----------------------|-----------------------------------------------|
-| Login            | `/login`             | email, password, "Remember me"                |
-| Register         | `/register`          | name, email, password, confirm password        |
-| Forgot Password  | `/forgot-password`   | email input → sends OTP                       |
-| Verify OTP       | `/verify-otp`        | 6-digit OTP input, countdown timer (10 min)   |
-| Reset Password   | `/reset-password`    | new password + confirm password               |
+- Access token, refresh token, and user are persisted in Zustand localStorage under `fintrack-auth`.
+- Axios reads the refresh token from the client store.
+- Route protection is client-side in dashboard layout.
+- There is no Next.js middleware and no API refresh proxy route.
 
----
+Production target:
 
-### Dashboard — `/dashboard`
+- Store refresh token in a secure, httpOnly, same-site cookie or use a backend-for-frontend session.
+- Keep access token in memory where possible.
+- Add refresh token rotation.
+- Add logout-all-sessions support.
+- Add CSRF protection if cookie auth is used.
+- Add route protection that does not flash private UI before auth state resolves.
 
-| Component             | Data Source                          | Notes                                  |
-|----------------------|--------------------------------------|----------------------------------------|
-| Total Balance Card   | `GET /api/reports/summary`           | income − expense                       |
-| Income/Expense Cards | `GET /api/reports/summary`           | monthly totals                         |
-| Recent Transactions  | `GET /api/transactions?limit=5`      | last 5, link to full list              |
-| Budget Progress Bars | `GET /api/budget-goals` + summary    | % spent of limit per category          |
-| Spending Trend Chart | `GET /api/reports/trend`             | Line chart, last 6 months (Recharts)   |
-| FAB "Add Transaction"| Opens `TransactionModal`             |                                        |
+## Core Web Experience
 
----
+The first production-grade web version should be a working financial workspace, not a marketing page.
 
-### Transactions — `/transactions`
+Primary navigation:
 
-| Feature           | API Endpoint                          | Notes                                  |
-|-------------------|---------------------------------------|----------------------------------------|
-| Transaction Table | `GET /api/transactions`               | Searchable, filterable, paginated      |
-| Filters           | Query params: `type`, `categoryId`, `from`, `to` | Dropdown + date range picker |
-| Add/Edit Modal    | `POST` / `PUT /api/transactions/:id`  | Full form with category dropdown       |
-| Delete            | `DELETE /api/transactions/:id`        | Confirm dialog before delete           |
-| Pagination        | `?page=N&limit=10`                    | 10 per page                            |
+- Dashboard
+- Transactions
+- Accounts
+- Budgets
+- Savings
+- Recurring
+- Reports
+- Settings
 
----
+## Required Screens
 
-### Budget Goals — `/budget-goals`
+### Auth
 
-| Feature        | API Endpoint                           | Notes                                  |
-|---------------|----------------------------------------|----------------------------------------|
-| Goal Card Grid | `GET /api/budget-goals?month=M&year=Y` | Category icon, name, spent/limit, bar |
-| Progress Color | Calculated client-side                  | Green <60%, Yellow 60-80%, Red >80%   |
-| Add/Edit Modal | `POST` / `PUT /api/budget-goals/:id`   | Category dropdown, amount input        |
-| Delete         | `DELETE /api/budget-goals/:id`          | Confirm dialog                         |
+- Login
+- Register
+- Forgot password
+- OTP verification
+- Reset password
 
----
+Required improvements:
 
-### Reports — `/reports`
+- Password strength guidance.
+- Form-level and field-level API errors.
+- Resend OTP with cooldown.
+- Expired token recovery.
+- Accessible input labels and focus states.
 
-| Component            | API Endpoint                     | Notes                                  |
-|---------------------|----------------------------------|----------------------------------------|
-| Month/Year Selector | Client-side                       | Controls all report data               |
-| Summary Cards       | `GET /api/reports/summary`        | Income, expense, savings, savings rate |
-| Pie Chart           | `GET /api/reports/by-category`    | Spending breakdown by category         |
-| Bar Chart           | `GET /api/reports/trend`          | 6-month income vs expense              |
-| Top Categories Table| `GET /api/reports/by-category`    | Top 5 spending categories              |
+### Onboarding
 
----
+Add this before broad release:
 
-### Settings — `/settings`
+1. Confirm name and currency.
+2. Create first account.
+3. Choose starter budget categories.
+4. Add first monthly budget.
+5. Add optional savings goal.
+6. Land on dashboard with useful empty states.
 
-| Section       | API Endpoint              | Notes                               |
-|--------------|---------------------------|---------------------------------------|
-| Profile      | `PUT /api/user/me`        | Update name                           |
-| Preferences  | `PUT /api/user/me`        | Currency selector (3-char code)       |
-| Security     | Password change form       | Uses forgot-password + OTP flow       |
-| Danger Zone  | `DELETE /api/user/me`     | Account deletion with confirmation    |
+### Dashboard
 
----
+Should show:
 
-## TypeScript Types (matching backend)
+- Total account balance.
+- Monthly income.
+- Monthly expenses.
+- Net savings and savings rate.
+- Spending by category.
+- Recent transactions.
+- Budget progress.
+- Upcoming recurring bills.
+- Quick add transaction action.
 
-```typescript
-// types/index.ts
+Current gaps:
 
-export type TransactionType = 'INCOME' | 'EXPENSE';
+- Some comparison values and upcoming bills are hardcoded.
+- Dashboard balance currently comes from income minus expenses, not account balances.
+- No account list summary yet.
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  currency: string;
-  createdAt: string;
-  updatedAt: string;
-}
+### Transactions
 
-export interface Category {
-  id: string;
-  userId: string;
-  name: string;
-  color: string;
-  icon: string;
-  isDefault: boolean;
-}
+Should support:
 
-export interface Transaction {
-  id: string;
-  userId: string;
-  title: string;
-  amount: string;      // Decimal comes as string from Prisma
-  type: TransactionType;
-  categoryId: string;
-  category: Category;
-  date: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+- List, filter, search, pagination.
+- Create, edit, delete.
+- Category, account, date, tags, notes.
+- Income/expense toggle.
+- CSV import later.
+- Export filtered transactions.
 
-export interface BudgetGoal {
-  id: string;
-  userId: string;
-  categoryId: string;
-  category: Category;
-  limitAmount: string;  // Decimal comes as string from Prisma
-  month: number;
-  year: number;
-  createdAt: string;
-}
+Current gaps:
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-}
+- Frontend types do not include account and tag fields on transaction requests.
+- Search is not wired to the backend.
+- Bulk actions are missing.
 
-export interface ReportSummary {
-  totalIncome: number;
-  totalExpense: number;
-  netSavings: number;
-  savingsRate: number;
-}
+### Accounts
 
-export interface CategoryReport {
-  categoryId: string;
-  categoryName: string;
-  color: string;
-  icon: string;
-  amount: number;
-}
+This screen should be added.
 
-export interface TrendData {
-  month: string;
-  income: number;
-  expense: number;
-}
+Features:
 
-export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
-  user: User;
-}
-```
+- List accounts by type.
+- Create/edit/delete account.
+- Account balances.
+- Account detail with transactions.
+- Transfer between accounts.
+- Balance correction flow.
 
----
+Backend support exists for basic account CRUD and transfer create/list.
 
-## Design Requirements
+### Budgets
 
-- Match ALL screens from the provided design images exactly
-- Use design's color tokens, typography scale, spacing, border radius, shadows
-- Dark mode support via Tailwind `dark:` classes
-- Fully responsive: mobile 375px → tablet 768px → desktop 1440px
-- Smooth page transitions
-- Skeleton loaders for all data-fetching states
-- Empty states with illustration for all list views
-- Toast notifications (Sonner) for all CRUD actions
+Should support:
 
----
+- Month selector.
+- Category budgets.
+- Spent, remaining, percent used.
+- Over-budget state.
+- Duplicate prevention.
+- Budget rollover visibility.
 
-## Build Order
+Current gaps:
 
-1. Setup Next.js + Tailwind + shadcn/ui
-2. Build Axios instance with interceptors + Zustand auth store
-3. Build all auth pages (login, register, forgot password, OTP, reset)
-4. Build dashboard layout (sidebar + navbar)
-5. Build Dashboard page
-6. Build Transactions, Budget Goals, Reports, Settings pages in order
+- Needs clearer rollover history from backend.
+- Needs database unique constraint on category/month/year.
+
+### Savings
+
+Should support:
+
+- Savings bucket balance.
+- Savings goals.
+- Allocate bucket funds to goals.
+- Return funds to bucket when a goal is deleted.
+- Add money to bucket manually or through budget rollover.
+
+Current gap:
+
+- Backend has allocation from bucket to goal, but no explicit user-facing flow for funding the bucket outside rollover.
+
+### Recurring
+
+Should support:
+
+- Create recurring transaction.
+- Edit/pause/delete recurring transaction.
+- Frequency: daily, weekly, monthly, yearly.
+- Next run date.
+- Upcoming bill calendar.
+
+Current gap:
+
+- Backend has the Prisma model and cron processor but no CRUD API routes.
+
+### Reports
+
+Should support:
+
+- Monthly summary.
+- Category breakdown.
+- Six-month trend.
+- Budget variance.
+- Account balance trend.
+- Cashflow forecast using recurring transactions.
+- PDF and CSV exports.
+
+Current gaps:
+
+- PDF summary period filtering bug in backend.
+- No advanced reports yet.
+
+### Settings
+
+Should support:
+
+- Profile update.
+- Currency preference.
+- Password reset/change.
+- Notification preferences.
+- Export all data.
+- Delete account.
+- Session management.
+
+Current gaps:
+
+- Notification preferences are not backed by API.
+- Session management does not exist yet.
+
+## Frontend Production Checklist
+
+- Fix lint errors.
+- Add unit tests for hooks and utilities.
+- Add component tests for forms and modals.
+- Add Playwright smoke tests for auth, dashboard, transaction CRUD, budget CRUD, and settings.
+- Add typed API client generated from OpenAPI or shared schemas.
+- Remove hardcoded finance data.
+- Add robust loading, empty, error, and retry states.
+- Add accessibility checks: keyboard nav, focus traps, color contrast, aria labels.
+- Add responsive screenshot checks for mobile, tablet, and desktop.
+- Add analytics events only after privacy policy is defined.
+- Add error tracking and user-safe error messages.
+
+## Recommended Design Direction
+
+Use a dense, work-focused finance dashboard style:
+
+- Clear tables and filters.
+- Compact summary cards.
+- Strong number hierarchy.
+- Calm neutral background.
+- Category color accents only where they carry meaning.
+- Avoid decorative hero sections.
+- Avoid marketing-page layout inside the app.
+
+The `web-designs-to-inspire` and `stitch_financial_dashboard_overview` folders provide useful visual direction, but the production UI should be implemented as typed reusable React components rather than copied HTML.
+
+## Next Build Order
+
+1. Fix frontend lint errors.
+2. Add Accounts page.
+3. Add recurring transaction backend CRUD, then wire `/recurring`.
+4. Fix auth token storage.
+5. Add onboarding.
+6. Replace hardcoded dashboard data.
+7. Add tests and Playwright smoke coverage.
