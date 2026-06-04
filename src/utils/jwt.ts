@@ -3,6 +3,7 @@ import { env } from '../config/env';
 
 export interface JwtPayload {
   userId: string;
+  sessionId?: string;
 }
 
 export const signAccessToken = (payload: JwtPayload): string => {

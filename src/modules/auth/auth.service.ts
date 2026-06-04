@@ -8,7 +8,81 @@ import jwt from 'jsonwebtoken';
 import { env } from '../../config/env';
 import crypto from 'crypto';
 
-export const register = async (input: RegisterInput) => {
+type SessionMetadata = {
+  userAgent?: string | string[];
+  ip?: string;
+};
+
+const defaultCategories = [
+  { name: "Food & Dining",   color: "#FF6B6B", icon: "utensils" },
+  { name: "Transport",       color: "#4ECDC4", icon: "car" },
+  { name: "Housing",         color: "#45B7D1", icon: "home" },
+  { name: "Entertainment",   color: "#96CEB4", icon: "film" },
+  { name: "Shopping",        color: "#FFEAA7", icon: "shopping-bag" },
+  { name: "Health",          color: "#DDA0DD", icon: "heart" },
+  { name: "Education",       color: "#98D8C8", icon: "book" },
+  { name: "Savings",         color: "#7EC8E3", icon: "piggy-bank" },
+  { name: "Income",          color: "#90EE90", icon: "trending-up" },
+  { name: "Other",           color: "#D3D3D3", icon: "more-horizontal" }
+];
+
+const hashValue = (value: string) =>
+  crypto.createHash('sha256').update(value).digest('hex');
+
+const hashOptional = (value?: string | string[]) => {
+  if (!value) return undefined;
+  return hashValue(Array.isArray(value) ? value.join(',') : value);
+};
+
+const durationToMs = (value: string) => {
+  const match = /^(\d+)([smhd])$/.exec(value.trim());
+  if (!match) return 7 * 24 * 60 * 60 * 1000;
+
+  const amount = Number(match[1]);
+  const unit = match[2];
+  if (unit === 's') return amount * 1000;
+  if (unit === 'm') return amount * 60 * 1000;
+  if (unit === 'h') return amount * 60 * 60 * 1000;
+  return amount * 24 * 60 * 60 * 1000;
+};
+
+const getRefreshExpiry = () =>
+  new Date(Date.now() + durationToMs(env.REFRESH_TOKEN_EXPIRES_IN));
+
+const createSessionTokens = async (userId: string, metadata: SessionMetadata = {}) => {
+  const expiresAt = getRefreshExpiry();
+  const session = await prisma.refreshSession.create({
+    data: {
+      userId,
+      tokenHash: `pending:${crypto.randomUUID()}`,
+      familyId: crypto.randomUUID(),
+      userAgentHash: hashOptional(metadata.userAgent),
+      ipHash: hashOptional(metadata.ip),
+      expiresAt,
+    },
+  });
+
+  const accessToken = signAccessToken({ userId, sessionId: session.id });
+  const refreshToken = signRefreshToken({ userId, sessionId: session.id });
+
+  await prisma.refreshSession.update({
+    where: { id: session.id },
+    data: {
+      tokenHash: hashValue(refreshToken),
+      expiresAt,
+      lastUsedAt: new Date(),
+    },
+  });
+
+  return { accessToken, refreshToken };
+};
+
+const serializeUser = <T extends { password: string }>(user: T) => {
+  const { password, ...userWithoutPassword } = user;
+  return userWithoutPassword;
+};
+
+export const register = async (input: RegisterInput, metadata: SessionMetadata = {}) => {
   const existingUser = await prisma.user.findUnique({ where: { email: input.email } });
   if (existingUser) {
     throw new Error('Email already in use');
@@ -16,83 +90,107 @@ export const register = async (input: RegisterInput) => {
 
   const hashedPassword = await hashPassword(input.password);
   
-  const user = await prisma.user.create({
-    data: {
-      name: input.name,
-      email: input.email,
-      password: hashedPassword,
-    }
+  const user = await prisma.$transaction(async (tx) => {
+    const created = await tx.user.create({
+      data: {
+        name: input.name,
+        email: input.email,
+        password: hashedPassword,
+      }
+    });
+
+    await tx.category.createMany({
+      data: defaultCategories.map(c => ({
+        ...c,
+        userId: created.id,
+        isDefault: true
+      }))
+    });
+
+    return created;
   });
 
-  // Seed default categories
-  const defaultCategories = [
-    { name: "Food & Dining",   color: "#FF6B6B", icon: "utensils" },
-    { name: "Transport",       color: "#4ECDC4", icon: "car" },
-    { name: "Housing",         color: "#45B7D1", icon: "home" },
-    { name: "Entertainment",   color: "#96CEB4", icon: "film" },
-    { name: "Shopping",        color: "#FFEAA7", icon: "shopping-bag" },
-    { name: "Health",          color: "#DDA0DD", icon: "heart" },
-    { name: "Education",       color: "#98D8C8", icon: "book" },
-    { name: "Savings",         color: "#7EC8E3", icon: "piggy-bank" },
-    { name: "Income",          color: "#90EE90", icon: "trending-up" },
-    { name: "Other",           color: "#D3D3D3", icon: "more-horizontal" }
-  ];
+  const tokens = await createSessionTokens(user.id, metadata);
 
-  await prisma.category.createMany({
-    data: defaultCategories.map(c => ({
-      ...c,
-      userId: user.id,
-      isDefault: true
-    }))
-  });
-
-  const accessToken = signAccessToken({ userId: user.id });
-  const refreshToken = signRefreshToken({ userId: user.id });
-
-  if (redis) {
-    await redis.set(`refresh:${user.id}`, refreshToken, 'EX', 7 * 24 * 60 * 60); // 7 days
-  }
-
-  const { password, ...userWithoutPassword } = user;
-  return { accessToken, refreshToken, user: userWithoutPassword };
+  return { ...tokens, user: serializeUser(user) };
 };
 
-export const login = async (input: LoginInput) => {
+export const login = async (input: LoginInput, metadata: SessionMetadata = {}) => {
   const user = await prisma.user.findUnique({ where: { email: input.email } });
   if (!user) throw new Error('Invalid credentials');
 
   const isValid = await comparePassword(input.password, user.password);
   if (!isValid) throw new Error('Invalid credentials');
 
-  const accessToken = signAccessToken({ userId: user.id });
-  const refreshToken = signRefreshToken({ userId: user.id });
+  const tokens = await createSessionTokens(user.id, metadata);
 
-  if (redis) {
-    await redis.set(`refresh:${user.id}`, refreshToken, 'EX', 7 * 24 * 60 * 60);
-  }
-
-  const { password, ...userWithoutPassword } = user;
-  return { accessToken, refreshToken, user: userWithoutPassword };
+  return { ...tokens, user: serializeUser(user) };
 };
 
 export const refresh = async (refreshToken: string) => {
   const payload = verifyRefreshToken(refreshToken);
-  
-  if (redis) {
-    const storedToken = await redis.get(`refresh:${payload.userId}`);
-    if (storedToken !== refreshToken) {
-      throw new Error('Invalid refresh token');
-    }
+  if (!payload.sessionId) {
+    throw new Error('Invalid refresh token');
   }
 
-  const accessToken = signAccessToken({ userId: payload.userId });
-  return { accessToken };
+  const session = await prisma.refreshSession.findFirst({
+    where: { id: payload.sessionId, userId: payload.userId },
+  });
+
+  if (!session) {
+    throw new Error('Invalid refresh token');
+  }
+
+  if (session.revokedAt || session.expiresAt <= new Date()) {
+    throw new Error('Invalid refresh token');
+  }
+
+  if (session.tokenHash !== hashValue(refreshToken)) {
+    await prisma.refreshSession.update({
+      where: { id: session.id },
+      data: {
+        revokedAt: new Date(),
+        revokeReason: 'TOKEN_REUSE_DETECTED',
+      },
+    });
+    throw new Error('Invalid refresh token');
+  }
+
+  const accessToken = signAccessToken({ userId: payload.userId, sessionId: session.id });
+  const nextRefreshToken = signRefreshToken({ userId: payload.userId, sessionId: session.id });
+
+  await prisma.refreshSession.update({
+    where: { id: session.id },
+    data: {
+      tokenHash: hashValue(nextRefreshToken),
+      expiresAt: getRefreshExpiry(),
+      lastUsedAt: new Date(),
+    },
+  });
+
+  return { accessToken, refreshToken: nextRefreshToken };
 };
 
-export const logout = async (userId: string) => {
-  if (redis) {
-    await redis.del(`refresh:${userId}`);
-  }
+export const logout = async (userId: string, sessionId?: string) => {
+  if (!sessionId) return logoutAll(userId);
+
+  await prisma.refreshSession.updateMany({
+    where: { id: sessionId, userId, revokedAt: null },
+    data: {
+      revokedAt: new Date(),
+      revokeReason: 'LOGOUT',
+    },
+  });
+};
+
+export const logoutAll = async (userId: string) => {
+  await prisma.refreshSession.updateMany({
+    where: { userId, revokedAt: null },
+    data: {
+      revokedAt: new Date(),
+      revokeReason: 'LOGOUT_ALL',
+    },
+  });
 };
 
 export const generateOtp = async (email: string) => {
@@ -138,7 +236,11 @@ export const resetPassword = async (input: ResetPasswordInput) => {
     data: { password: hashedPassword },
   });
 
-  if (redis) {
-    await redis.del(`refresh:${payload.userId}`); // Invalidate active sessions
-  }
+  await prisma.refreshSession.updateMany({
+    where: { userId: payload.userId, revokedAt: null },
+    data: {
+      revokedAt: new Date(),
+      revokeReason: 'PASSWORD_RESET',
+    },
+  });
 };

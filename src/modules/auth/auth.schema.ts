@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const registerSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z.string().min(8),
 });
 
 export const loginSchema = z.object({
@@ -26,7 +26,7 @@ export const verifyOtpSchema = z.object({
 
 export const resetPasswordSchema = z.object({
   resetToken: z.string(),
-  newPassword: z.string().min(6),
+  newPassword: z.string().min(8),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;

@@ -5,10 +5,15 @@ import {
   forgotPasswordSchema, verifyOtpSchema, resetPasswordSchema 
 } from './auth.schema';
 
+const getSessionMetadata = (request: FastifyRequest) => ({
+  userAgent: request.headers['user-agent'],
+  ip: request.ip,
+});
+
 export const register = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const data = registerSchema.parse(request.body);
-    const result = await authService.register(data);
+    const result = await authService.register(data, getSessionMetadata(request));
     return reply.code(201).send(result);
   } catch (error: any) {
     return reply.code(400).send({ message: error.message });
@@ -18,7 +23,7 @@ export const register = async (request: FastifyRequest, reply: FastifyReply) => 
 export const login = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const data = loginSchema.parse(request.body);
-    const result = await authService.login(data);
+    const result = await authService.login(data, getSessionMetadata(request));
     return reply.send(result);
   } catch (error: any) {
     return reply.code(401).send({ message: error.message });
@@ -38,10 +43,21 @@ export const refresh = async (request: FastifyRequest, reply: FastifyReply) => {
 export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const userId = (request as any).user.userId;
-    await authService.logout(userId);
+    const sessionId = (request as any).user.sessionId;
+    await authService.logout(userId, sessionId);
     return reply.send({ message: 'Logged out' });
   } catch (error: any) {
     return reply.code(500).send({ message: 'Error logging out' });
+  }
+};
+
+export const logoutAll = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const userId = (request as any).user.userId;
+    await authService.logoutAll(userId);
+    return reply.send({ message: 'All sessions logged out' });
+  } catch (error: any) {
+    return reply.code(500).send({ message: 'Error logging out sessions' });
   }
 };
 

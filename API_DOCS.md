@@ -33,7 +33,7 @@ See `.env.example`.
 Required services:
 
 - PostgreSQL via `DATABASE_URL`.
-- Redis via `REDIS_URL` for refresh token checks, OTPs, and rate limiting.
+- Redis via `REDIS_URL` for OTPs and rate limiting.
 - SMTP credentials for password reset OTP emails.
 
 ## Auth Model
@@ -41,16 +41,17 @@ Required services:
 Current implementation:
 
 - Access token: JWT, default `15m`.
-- Refresh token: JWT, default `7d`.
-- Refresh token Redis key: `refresh:{userId}`.
+- Refresh token: JWT, default `7d`, bound to a `RefreshSession`.
+- Refresh sessions are stored in PostgreSQL with hashed refresh tokens.
+- Refresh token calls rotate the refresh token and invalidate the previous token.
 - OTP Redis key: `otp:{email}`, 10 minute TTL.
 - Password reset token: short-lived JWT signed with `ACCESS_TOKEN_SECRET`.
 
 Production change required:
 
 - Move refresh tokens out of browser `localStorage`.
-- Add refresh token rotation and session records.
-- Add device/session logout.
+- Add httpOnly-cookie delivery or a backend-for-frontend session once the frontend is rebuilt.
+- Add session management UI.
 - Use cryptographic OTP generation.
 
 ## Data Models
@@ -84,6 +85,7 @@ Main Prisma models:
 | POST | `/api/auth/login` | No | `{ email, password }` |
 | POST | `/api/auth/refresh` | No | `{ refreshToken }` |
 | POST | `/api/auth/logout` | Yes | none |
+| POST | `/api/auth/logout-all` | Yes | none |
 | POST | `/api/auth/forgot-password` | No | `{ email }` |
 | POST | `/api/auth/verify-otp` | No | `{ email, otp }` |
 | POST | `/api/auth/reset-password` | No | `{ resetToken, newPassword }` |
@@ -241,5 +243,5 @@ Production target:
 - Add consistent error codes.
 - Add pagination to all list endpoints.
 - Add timezone-aware reporting.
-- Add session and refresh token hardening.
+- Add httpOnly-cookie refresh delivery when the frontend auth layer is rebuilt.
 - Add richer recurring transaction operations such as skip next run and run now.

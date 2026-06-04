@@ -24,6 +24,7 @@ model User {
   recurringTransactions RecurringTransaction[]
   savingsBuckets        SavingsBucket[]
   savingsGoals          SavingsGoal[]
+  refreshSessions       RefreshSession[]
 }
 
 model Account {
@@ -40,6 +41,8 @@ model Account {
   transfersFrom         Transfer[]             @relation("TransferFrom")
   transfersTo           Transfer[]             @relation("TransferTo")
   recurringTransactions RecurringTransaction[]
+
+  @@index([userId, type])
 }
 
 model Transfer {
@@ -55,6 +58,8 @@ model Transfer {
   notes           String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  @@index([userId, date])
 }
 
 model Transaction {
@@ -73,6 +78,11 @@ model Transaction {
   notes      String?
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
+
+  @@index([userId, date])
+  @@index([userId, type, date])
+  @@index([userId, categoryId, date])
+  @@index([userId, accountId, date])
 }
 
 model Tag {
@@ -95,6 +105,8 @@ model Category {
   transactions Transaction[]
   budgetGoals  BudgetGoal[]
   recurringTxs RecurringTransaction[]
+
+  @@unique([userId, name])
 }
 
 model BudgetGoal {
@@ -107,6 +119,8 @@ model BudgetGoal {
   month       Int
   year        Int
   createdAt   DateTime @default(now())
+
+  @@unique([userId, categoryId, month, year])
 }
 
 model SavingsBucket {
@@ -149,6 +163,27 @@ model RecurringTransaction {
   notes           String?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
+
+  @@index([userId, isActive, nextDate])
+}
+
+model RefreshSession {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash       String    @unique
+  familyId        String
+  userAgentHash   String?
+  ipHash          String?
+  expiresAt       DateTime
+  lastUsedAt      DateTime  @default(now())
+  revokedAt       DateTime?
+  revokeReason    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId, revokedAt])
+  @@index([familyId])
 }
 
 enum AccountType {

@@ -28,8 +28,9 @@ Verification performed:
 - Register, login, refresh, logout.
 - Forgot password, verify OTP, reset password.
 - Password hashing with bcrypt.
-- Access and refresh JWTs.
-- Redis-backed refresh token lookup when Redis is available.
+- Access and refresh JWTs with session IDs.
+- Database-backed refresh sessions with hashed rotating refresh tokens.
+- Logout current session and logout all sessions.
 - OTP storage in Redis.
 - Default categories seeded per user at registration.
 
@@ -66,11 +67,11 @@ These are not blockers for a demo, but they are blockers for a serious productio
 ### Backend Gaps
 
 - No automated tests.
-- No Prisma migration history; Docker currently uses `prisma db push`.
+- Prisma migration history now exists; Docker uses `prisma migrate deploy`.
 - No generated OpenAPI spec or schema-driven API documentation.
 - No request/response schemas registered with Fastify for runtime documentation.
 - No centralized error model; controllers return mixed `400`, `401`, `404`, and `500` behavior.
-- Refresh token design allows only one active refresh token per user and does not rotate tokens.
+- Refresh tokens now rotate and are session-backed; frontend still needs secure cookie/session delivery.
 - Refresh tokens are returned to the client body, so the frontend stores them in `localStorage`.
 - OTP generation uses `Math.random`; use cryptographic randomness.
 - Rate limiting depends on plugin config but needs verification against Redis and route-specific policies.
@@ -119,10 +120,10 @@ FinTrack should not be called production grade until these are true:
 ### Phase 1: Stabilize The Existing MVP
 
 1. Add backend tests with Vitest or Node test runner plus Fastify `inject`.
-2. Add Prisma migrations and replace `prisma db push` in Docker startup.
+2. Expand migrations with remaining production constraints and validate fresh database startup.
 3. Add a central error helper and consistent error response format.
 4. Fix frontend lint errors and warnings.
-5. Replace frontend `localStorage` refresh token storage with secure cookie/session design.
+5. Replace frontend `localStorage` refresh token storage with secure cookie/session delivery.
 6. Add missing TypeScript types for the current backend models.
 7. Remove hardcoded dashboard data or mark it as mock-only.
 

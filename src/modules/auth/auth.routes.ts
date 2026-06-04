@@ -9,6 +9,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/login', { config: { rateLimit: authRateLimit }, handler: authController.login });
   fastify.post('/refresh', { handler: authController.refresh });
   fastify.post('/logout', { preHandler: [fastify.authenticate], handler: authController.logout });
+  fastify.post('/logout-all', { preHandler: [fastify.authenticate], handler: authController.logoutAll });
   fastify.post('/forgot-password', { config: { rateLimit: authRateLimit }, handler: authController.forgotPassword });
   fastify.post('/verify-otp', { handler: authController.verifyOtp });
   fastify.post('/reset-password', { handler: authController.resetPassword });

@@ -15,28 +15,35 @@ This task focuses on backend correctness, security, reliability, and contract st
 Current state:
 
 - Access and refresh JWTs exist.
-- Refresh token is stored in Redis as `refresh:{userId}`.
+- Refresh sessions now use a `RefreshSession` database table.
+- Refresh tokens are hashed server-side.
+- Access and refresh tokens include `sessionId`.
+- Refresh tokens rotate on refresh.
 - Frontend currently persists refresh tokens client-side.
 - Password reset OTP flow exists.
 
-Needed:
+Done in current pass:
 
 - Add refresh token rotation.
 - Add server-side session records.
 - Support multiple devices/sessions.
 - Support logout current session and logout all sessions.
 - Store only hashed refresh tokens server-side.
-- Add token reuse detection.
-- Add session metadata: user agent, IP hash, createdAt, lastUsedAt, revokedAt.
-- Add stronger password rules.
+- Revoke active sessions on password reset.
+
+Still needed:
+
+- Add deeper session tests for refresh token reuse, logout, logout-all, and password reset revocation.
+- Add session listing endpoint for the future settings UI.
+- Add httpOnly-cookie refresh delivery when the frontend auth layer is rebuilt.
 - Keep forgot-password responses enumeration-safe.
-- Keep OTP generation cryptographically secure.
+- Keep monitoring OTP and auth rate limits.
 
 Acceptance criteria:
 
 - Login creates a session.
 - Refresh rotates refresh token and invalidates old token.
-- Reusing an old refresh token revokes the session family.
+- Reusing an old refresh token revokes the session.
 - Logout revokes the active session.
 - Logout-all revokes every user session.
 - Password reset revokes all active sessions.
@@ -48,12 +55,12 @@ Current state:
 
 - Prisma schema exists.
 - A first migration was added for recurring `isActive` and `BIWEEKLY`.
-- Docker still uses `prisma db push`.
+- Baseline migration exists.
+- Docker uses `prisma migrate deploy`.
 
-Needed:
+Still needed:
 
-- Replace `db push` usage with `prisma migrate deploy`.
-- Create migrations for production constraints.
+- Validate fresh database startup from migrations.
 - Add migration documentation.
 - Validate migrations in CI.
 
@@ -244,4 +251,3 @@ curl http://localhost:5001/health
 - Bank integrations.
 - Payment processing.
 - Multi-tenant/household sharing.
-
