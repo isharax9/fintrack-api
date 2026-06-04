@@ -1,6 +1,8 @@
 import { prisma } from '../../config/db';
 import { CreateBudgetGoalInput, UpdateBudgetGoalInput, BudgetGoalQuery } from './budgetGoals.schema';
 import { createAuditLog } from '../audit/audit.service';
+import { RequestMetadata } from '../../utils/requestContext';
+import { badRequest, conflict, notFound } from '../../utils/errors';
 
 export const listBudgetGoals = async (userId: string, query: BudgetGoalQuery) => {
   return prisma.budgetGoal.findMany({
@@ -13,9 +15,9 @@ export const listBudgetGoals = async (userId: string, query: BudgetGoalQuery) =>
   });
 };
 
-export const createBudgetGoal = async (userId: string, data: CreateBudgetGoalInput) => {
+export const createBudgetGoal = async (userId: string, data: CreateBudgetGoalInput, metadata: RequestMetadata) => {
   const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
-  if (!category || category.userId !== userId) throw new Error('Invalid category');
+  if (!category || category.userId !== userId) throw badRequest('Invalid category');
 
   // Ensure no duplicate goal for the same category in the same month/year
   const existing = await prisma.budgetGoal.findFirst({
@@ -27,7 +29,7 @@ export const createBudgetGoal = async (userId: string, data: CreateBudgetGoalInp
     }
   });
 
-  if (existing) throw new Error('Budget goal already exists for this category in this month');
+  if (existing) throw conflict('Budget goal already exists for this category in this month');
 
   return prisma.$transaction(async (tx) => {
     const goal = await tx.budgetGoal.create({
@@ -43,6 +45,7 @@ export const createBudgetGoal = async (userId: string, data: CreateBudgetGoalInp
       action: 'BUDGET_GOAL_CREATED',
       entityType: 'BudgetGoal',
       entityId: goal.id,
+      ...metadata,
       metadata: { categoryId: goal.categoryId, month: goal.month, year: goal.year, limitAmount: goal.limitAmount.toString() },
     }, tx);
 
@@ -50,9 +53,9 @@ export const createBudgetGoal = async (userId: string, data: CreateBudgetGoalInp
   });
 };
 
-export const updateBudgetGoal = async (userId: string, id: string, data: UpdateBudgetGoalInput) => {
+export const updateBudgetGoal = async (userId: string, id: string, data: UpdateBudgetGoalInput, metadata: RequestMetadata) => {
   const goal = await prisma.budgetGoal.findUnique({ where: { id } });
-  if (!goal || goal.userId !== userId) throw new Error('Budget goal not found');
+  if (!goal || goal.userId !== userId) throw notFound('Budget goal not found');
 
   return prisma.$transaction(async (tx) => {
     const updated = await tx.budgetGoal.update({
@@ -66,6 +69,7 @@ export const updateBudgetGoal = async (userId: string, id: string, data: UpdateB
       action: 'BUDGET_GOAL_UPDATED',
       entityType: 'BudgetGoal',
       entityId: updated.id,
+      ...metadata,
       metadata: { previousLimitAmount: goal.limitAmount.toString(), limitAmount: updated.limitAmount.toString() },
     }, tx);
 
@@ -73,9 +77,9 @@ export const updateBudgetGoal = async (userId: string, id: string, data: UpdateB
   });
 };
 
-export const deleteBudgetGoal = async (userId: string, id: string) => {
+export const deleteBudgetGoal = async (userId: string, id: string, metadata: RequestMetadata) => {
   const goal = await prisma.budgetGoal.findUnique({ where: { id } });
-  if (!goal || goal.userId !== userId) throw new Error('Budget goal not found');
+  if (!goal || goal.userId !== userId) throw notFound('Budget goal not found');
 
   await prisma.$transaction(async (tx) => {
     await tx.budgetGoal.delete({ where: { id } });
@@ -84,6 +88,7 @@ export const deleteBudgetGoal = async (userId: string, id: string) => {
       action: 'BUDGET_GOAL_DELETED',
       entityType: 'BudgetGoal',
       entityId: id,
+      ...metadata,
       metadata: { categoryId: goal.categoryId, month: goal.month, year: goal.year, limitAmount: goal.limitAmount.toString() },
     }, tx);
   });

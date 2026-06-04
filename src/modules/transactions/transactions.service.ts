@@ -2,6 +2,8 @@ import { prisma } from '../../config/db';
 import { CreateTransactionInput, UpdateTransactionInput, TransactionQuery } from './transactions.schema';
 import { Prisma } from '@prisma/client';
 import { createAuditLog } from '../audit/audit.service';
+import { RequestMetadata } from '../../utils/requestContext';
+import { badRequest, notFound } from '../../utils/errors';
 
 export const listTransactions = async (userId: string, query: TransactionQuery) => {
   const where: Prisma.TransactionWhereInput = { userId };
@@ -39,13 +41,13 @@ export const listTransactions = async (userId: string, query: TransactionQuery) 
   };
 };
 
-export const createTransaction = async (userId: string, data: CreateTransactionInput) => {
+export const createTransaction = async (userId: string, data: CreateTransactionInput, metadata: RequestMetadata) => {
   const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
-  if (!category || category.userId !== userId) throw new Error('Invalid category');
+  if (!category || category.userId !== userId) throw badRequest('Invalid category');
 
   if (data.accountId) {
     const account = await prisma.account.findUnique({ where: { id: data.accountId } });
-    if (!account || account.userId !== userId) throw new Error('Invalid account');
+    if (!account || account.userId !== userId) throw badRequest('Invalid account');
   }
 
   if (data.tagIds && data.tagIds.length > 0) {
@@ -53,7 +55,7 @@ export const createTransaction = async (userId: string, data: CreateTransactionI
       where: { id: { in: data.tagIds }, userId },
       select: { id: true },
     });
-    if (tags.length !== new Set(data.tagIds).size) throw new Error('Invalid tag');
+    if (tags.length !== new Set(data.tagIds).size) throw badRequest('Invalid tag');
   }
 
   return prisma.$transaction(async (tx) => {
@@ -97,6 +99,7 @@ export const createTransaction = async (userId: string, data: CreateTransactionI
       action: 'TRANSACTION_CREATED',
       entityType: 'Transaction',
       entityId: transaction.id,
+      ...metadata,
       metadata: {
         accountId: transaction.accountId,
         categoryId: transaction.categoryId,
@@ -115,21 +118,21 @@ export const getTransaction = async (userId: string, id: string) => {
     include: { category: true, tags: true }
   });
   
-  if (!transaction || transaction.userId !== userId) throw new Error('Transaction not found');
+  if (!transaction || transaction.userId !== userId) throw notFound('Transaction not found');
   return transaction;
 };
 
-export const updateTransaction = async (userId: string, id: string, data: UpdateTransactionInput) => {
+export const updateTransaction = async (userId: string, id: string, data: UpdateTransactionInput, metadata: RequestMetadata) => {
   const original = await getTransaction(userId, id);
 
   if (data.categoryId) {
     const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
-    if (!category || category.userId !== userId) throw new Error('Invalid category');
+    if (!category || category.userId !== userId) throw badRequest('Invalid category');
   }
 
   if (data.accountId) {
     const account = await prisma.account.findUnique({ where: { id: data.accountId } });
-    if (!account || account.userId !== userId) throw new Error('Invalid account');
+    if (!account || account.userId !== userId) throw badRequest('Invalid account');
   }
 
   if (data.tagIds && data.tagIds.length > 0) {
@@ -137,7 +140,7 @@ export const updateTransaction = async (userId: string, id: string, data: Update
       where: { id: { in: data.tagIds }, userId },
       select: { id: true },
     });
-    if (tags.length !== new Set(data.tagIds).size) throw new Error('Invalid tag');
+    if (tags.length !== new Set(data.tagIds).size) throw badRequest('Invalid tag');
   }
 
   return prisma.$transaction(async (tx) => {
@@ -194,6 +197,7 @@ export const updateTransaction = async (userId: string, id: string, data: Update
       action: 'TRANSACTION_UPDATED',
       entityType: 'Transaction',
       entityId: updated.id,
+      ...metadata,
       metadata: {
         previousAccountId: original.accountId,
         accountId: updated.accountId,
@@ -208,7 +212,7 @@ export const updateTransaction = async (userId: string, id: string, data: Update
   });
 };
 
-export const deleteTransaction = async (userId: string, id: string) => {
+export const deleteTransaction = async (userId: string, id: string, metadata: RequestMetadata) => {
   const original = await getTransaction(userId, id);
   
   await prisma.$transaction(async (tx) => {
@@ -225,6 +229,7 @@ export const deleteTransaction = async (userId: string, id: string) => {
       action: 'TRANSACTION_DELETED',
       entityType: 'Transaction',
       entityId: original.id,
+      ...metadata,
       metadata: {
         accountId: original.accountId,
         categoryId: original.categoryId,

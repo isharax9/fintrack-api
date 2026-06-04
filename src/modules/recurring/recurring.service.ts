@@ -1,15 +1,16 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/db';
+import { badRequest, notFound } from '../../utils/errors';
 import { CreateRecurringInput, RecurringQuery, UpdateRecurringInput } from './recurring.schema';
 
 const assertOwnedAccount = async (userId: string, accountId: string) => {
   const account = await prisma.account.findFirst({ where: { id: accountId, userId } });
-  if (!account) throw new Error('Invalid account');
+  if (!account) throw badRequest('Invalid account');
 };
 
 const assertOwnedCategory = async (userId: string, categoryId: string) => {
   const category = await prisma.category.findFirst({ where: { id: categoryId, userId } });
-  if (!category) throw new Error('Invalid category');
+  if (!category) throw badRequest('Invalid category');
 };
 
 export const listRecurring = async (userId: string, query: RecurringQuery) => {
@@ -71,7 +72,7 @@ export const getRecurring = async (userId: string, id: string) => {
     include: { account: true, category: true },
   });
 
-  if (!recurring) throw new Error('Recurring transaction not found');
+  if (!recurring) throw notFound('Recurring transaction not found');
   return recurring;
 };
 

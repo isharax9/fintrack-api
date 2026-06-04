@@ -9,10 +9,12 @@ import { env } from '../../config/env';
 import crypto from 'crypto';
 import { createAuditLog } from '../audit/audit.service';
 import { hashOptional } from '../../utils/security';
+import { badRequest, conflict, unauthorized } from '../../utils/errors';
 
 type SessionMetadata = {
   userAgent?: string | string[];
   ip?: string;
+  requestId?: string;
 };
 
 const defaultCategories = [
@@ -82,7 +84,7 @@ const serializeUser = <T extends { password: string }>(user: T) => {
 export const register = async (input: RegisterInput, metadata: SessionMetadata = {}) => {
   const existingUser = await prisma.user.findUnique({ where: { email: input.email } });
   if (existingUser) {
-    throw new Error('Email already in use');
+    throw conflict('Email already in use');
   }
 
   const hashedPassword = await hashPassword(input.password);
@@ -115,6 +117,7 @@ export const register = async (input: RegisterInput, metadata: SessionMetadata =
     entityId: user.id,
     ip: metadata.ip,
     userAgent: metadata.userAgent,
+    requestId: metadata.requestId,
   });
 
   return { ...tokens, user: serializeUser(user) };
@@ -122,10 +125,10 @@ export const register = async (input: RegisterInput, metadata: SessionMetadata =
 
 export const login = async (input: LoginInput, metadata: SessionMetadata = {}) => {
   const user = await prisma.user.findUnique({ where: { email: input.email } });
-  if (!user) throw new Error('Invalid credentials');
+  if (!user) throw unauthorized('Invalid credentials');
 
   const isValid = await comparePassword(input.password, user.password);
-  if (!isValid) throw new Error('Invalid credentials');
+  if (!isValid) throw unauthorized('Invalid credentials');
 
   const tokens = await createSessionTokens(user.id, metadata);
   await createAuditLog({
@@ -134,15 +137,16 @@ export const login = async (input: LoginInput, metadata: SessionMetadata = {}) =
     entityType: 'RefreshSession',
     ip: metadata.ip,
     userAgent: metadata.userAgent,
+    requestId: metadata.requestId,
   });
 
   return { ...tokens, user: serializeUser(user) };
 };
 
-export const refresh = async (refreshToken: string) => {
+export const refresh = async (refreshToken: string, metadata: SessionMetadata = {}) => {
   const payload = verifyRefreshToken(refreshToken);
   if (!payload.sessionId) {
-    throw new Error('Invalid refresh token');
+    throw unauthorized('Invalid refresh token');
   }
 
   const session = await prisma.refreshSession.findFirst({
@@ -150,11 +154,11 @@ export const refresh = async (refreshToken: string) => {
   });
 
   if (!session) {
-    throw new Error('Invalid refresh token');
+    throw unauthorized('Invalid refresh token');
   }
 
   if (session.revokedAt || session.expiresAt <= new Date()) {
-    throw new Error('Invalid refresh token');
+    throw unauthorized('Invalid refresh token');
   }
 
   if (session.tokenHash !== hashValue(refreshToken)) {
@@ -165,7 +169,7 @@ export const refresh = async (refreshToken: string) => {
         revokeReason: 'TOKEN_REUSE_DETECTED',
       },
     });
-    throw new Error('Invalid refresh token');
+    throw unauthorized('Invalid refresh token');
   }
 
   const accessToken = signAccessToken({ userId: payload.userId, sessionId: session.id });
@@ -184,12 +188,15 @@ export const refresh = async (refreshToken: string) => {
     action: 'AUTH_REFRESH',
     entityType: 'RefreshSession',
     entityId: session.id,
+    ip: metadata.ip,
+    userAgent: metadata.userAgent,
+    requestId: metadata.requestId,
   });
 
   return { accessToken, refreshToken: nextRefreshToken };
 };
 
-export const logout = async (userId: string, sessionId?: string) => {
+export const logout = async (userId: string, sessionId?: string, metadata: SessionMetadata = {}) => {
   if (!sessionId) return logoutAll(userId);
 
   await prisma.refreshSession.updateMany({
@@ -204,10 +211,13 @@ export const logout = async (userId: string, sessionId?: string) => {
     action: 'AUTH_LOGOUT',
     entityType: 'RefreshSession',
     entityId: sessionId,
+    ip: metadata.ip,
+    userAgent: metadata.userAgent,
+    requestId: metadata.requestId,
   });
 };
 
-export const logoutAll = async (userId: string) => {
+export const logoutAll = async (userId: string, metadata: SessionMetadata = {}) => {
   await prisma.refreshSession.updateMany({
     where: { userId, revokedAt: null },
     data: {
@@ -219,10 +229,13 @@ export const logoutAll = async (userId: string) => {
     userId,
     action: 'AUTH_LOGOUT_ALL',
     entityType: 'RefreshSession',
+    ip: metadata.ip,
+    userAgent: metadata.userAgent,
+    requestId: metadata.requestId,
   });
 };
 
-export const generateOtp = async (email: string) => {
+export const generateOtp = async (email: string, metadata: SessionMetadata = {}) => {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
     // Return silently to prevent email enumeration
@@ -241,20 +254,23 @@ export const generateOtp = async (email: string) => {
     action: 'PASSWORD_RESET_REQUESTED',
     entityType: 'User',
     entityId: user.id,
+    ip: metadata.ip,
+    userAgent: metadata.userAgent,
+    requestId: metadata.requestId,
   });
 };
 
 export const verifyOtp = async (email: string, otp: string) => {
-  if (!redis) throw new Error("OTP verification requires Redis");
+  if (!redis) throw badRequest('OTP verification requires Redis');
   
   const storedOtp = await redis.get(`otp:${email}`);
   if (storedOtp !== otp) {
-    throw new Error('Invalid or expired OTP');
+    throw badRequest('Invalid or expired OTP');
   }
 
   // OTP verified, issue a short lived reset token
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) throw new Error('User not found');
+  if (!user) throw badRequest('User not found');
 
   const resetToken = jwt.sign({ userId: user.id }, env.ACCESS_TOKEN_SECRET, { expiresIn: '10m' });
   
@@ -262,7 +278,7 @@ export const verifyOtp = async (email: string, otp: string) => {
   return { resetToken };
 };
 
-export const resetPassword = async (input: ResetPasswordInput) => {
+export const resetPassword = async (input: ResetPasswordInput, metadata: SessionMetadata = {}) => {
   const payload = jwt.verify(input.resetToken, env.ACCESS_TOKEN_SECRET) as { userId: string };
   const hashedPassword = await hashPassword(input.newPassword);
 
@@ -283,5 +299,8 @@ export const resetPassword = async (input: ResetPasswordInput) => {
     action: 'PASSWORD_RESET_COMPLETED',
     entityType: 'User',
     entityId: payload.userId,
+    ip: metadata.ip,
+    userAgent: metadata.userAgent,
+    requestId: metadata.requestId,
   });
 };

@@ -1,24 +1,17 @@
-import { FastifyRequest, FastifyReply } from 'fastify';
-import * as transfersService from './transfers.service';
+import { FastifyReply, FastifyRequest } from 'fastify';
+import { getAuthContext, getRequestMetadata } from '../../utils/requestContext';
 import { createTransferSchema } from './transfers.schema';
+import * as transfersService from './transfers.service';
 
 export const list = async (request: FastifyRequest, reply: FastifyReply) => {
-  try {
-    const userId = (request as any).user.userId;
-    const transfers = await transfersService.listTransfers(userId);
-    return reply.send(transfers);
-  } catch (error: any) {
-    return reply.code(500).send({ message: error.message });
-  }
+  const { userId } = getAuthContext(request);
+  const transfers = await transfersService.listTransfers(userId);
+  return reply.send(transfers);
 };
 
 export const create = async (request: FastifyRequest, reply: FastifyReply) => {
-  try {
-    const userId = (request as any).user.userId;
-    const data = createTransferSchema.parse(request.body);
-    const transfer = await transfersService.createTransfer(userId, data);
-    return reply.code(201).send(transfer);
-  } catch (error: any) {
-    return reply.code(400).send({ message: error.message });
-  }
+  const { userId } = getAuthContext(request);
+  const data = createTransferSchema.parse(request.body);
+  const transfer = await transfersService.createTransfer(userId, data, getRequestMetadata(request));
+  return reply.code(201).send(transfer);
 };

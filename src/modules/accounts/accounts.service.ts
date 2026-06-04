@@ -1,6 +1,8 @@
 import { prisma } from '../../config/db';
 import { CreateAccountInput, UpdateAccountInput } from './accounts.schema';
 import { createAuditLog } from '../audit/audit.service';
+import { RequestMetadata } from '../../utils/requestContext';
+import { badRequest, notFound } from '../../utils/errors';
 
 export const listAccounts = async (userId: string) => {
   return prisma.account.findMany({
@@ -9,7 +11,7 @@ export const listAccounts = async (userId: string) => {
   });
 };
 
-export const createAccount = async (userId: string, data: CreateAccountInput) => {
+export const createAccount = async (userId: string, data: CreateAccountInput, metadata: RequestMetadata) => {
   return prisma.$transaction(async (tx) => {
     const account = await tx.account.create({
       data: {
@@ -23,6 +25,7 @@ export const createAccount = async (userId: string, data: CreateAccountInput) =>
       action: 'ACCOUNT_CREATED',
       entityType: 'Account',
       entityId: account.id,
+      ...metadata,
       metadata: { name: account.name, type: account.type },
     }, tx);
 
@@ -30,13 +33,13 @@ export const createAccount = async (userId: string, data: CreateAccountInput) =>
   });
 };
 
-export const updateAccount = async (userId: string, id: string, data: UpdateAccountInput) => {
+export const updateAccount = async (userId: string, id: string, data: UpdateAccountInput, metadata: RequestMetadata) => {
   const account = await prisma.account.findFirst({
     where: { id, userId },
   });
 
   if (!account) {
-    throw new Error('Account not found');
+    throw notFound('Account not found');
   }
 
   return prisma.$transaction(async (tx) => {
@@ -50,6 +53,7 @@ export const updateAccount = async (userId: string, id: string, data: UpdateAcco
       action: 'ACCOUNT_UPDATED',
       entityType: 'Account',
       entityId: updated.id,
+      ...metadata,
       metadata: { previousName: account.name, name: updated.name, previousType: account.type, type: updated.type },
     }, tx);
 
@@ -57,13 +61,13 @@ export const updateAccount = async (userId: string, id: string, data: UpdateAcco
   });
 };
 
-export const deleteAccount = async (userId: string, id: string) => {
+export const deleteAccount = async (userId: string, id: string, metadata: RequestMetadata) => {
   const account = await prisma.account.findFirst({
     where: { id, userId },
   });
 
   if (!account) {
-    throw new Error('Account not found');
+    throw notFound('Account not found');
   }
 
   const linkedUsage = await prisma.account.findFirst({
@@ -81,7 +85,7 @@ export const deleteAccount = async (userId: string, id: string) => {
   });
 
   if (linkedUsage) {
-    throw new Error('Cannot delete an account with transactions, transfers, or recurring transactions');
+    throw badRequest('Cannot delete an account with transactions, transfers, or recurring transactions');
   }
 
   return prisma.$transaction(async (tx) => {
@@ -94,6 +98,7 @@ export const deleteAccount = async (userId: string, id: string) => {
       action: 'ACCOUNT_DELETED',
       entityType: 'Account',
       entityId: id,
+      ...metadata,
       metadata: { name: deleted.name, type: deleted.type },
     }, tx);
 

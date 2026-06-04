@@ -241,7 +241,7 @@ Centralized error shape:
 
 - Add OpenAPI generation.
 - Add contract tests against this document.
-- Finish migrating existing legacy controller catch blocks to the central error handler.
+- Expand route-level contract tests for the centralized error response.
 - Add pagination to all list endpoints.
 - Add timezone-aware reporting.
 - Add httpOnly-cookie refresh delivery when the frontend auth layer is rebuilt.

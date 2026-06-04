@@ -1,6 +1,8 @@
 import { prisma } from '../../config/db';
 import { CreateTransferInput } from './transfers.schema';
 import { createAuditLog } from '../audit/audit.service';
+import { RequestMetadata } from '../../utils/requestContext';
+import { badRequest } from '../../utils/errors';
 
 export const listTransfers = async (userId: string) => {
   return prisma.transfer.findMany({
@@ -13,12 +15,12 @@ export const listTransfers = async (userId: string) => {
   });
 };
 
-export const createTransfer = async (userId: string, data: CreateTransferInput) => {
+export const createTransfer = async (userId: string, data: CreateTransferInput, metadata: RequestMetadata) => {
   const accountFrom = await prisma.account.findFirst({ where: { id: data.fromAccountId, userId }});
   const accountTo = await prisma.account.findFirst({ where: { id: data.toAccountId, userId }});
 
   if (!accountFrom || !accountTo) {
-    throw new Error('One or both accounts not found or do not belong to user');
+    throw badRequest('One or both accounts not found or do not belong to user');
   }
 
   return prisma.$transaction(async (tx) => {
@@ -48,6 +50,7 @@ export const createTransfer = async (userId: string, data: CreateTransferInput) 
       action: 'TRANSFER_CREATED',
       entityType: 'Transfer',
       entityId: transfer.id,
+      ...metadata,
       metadata: {
         fromAccountId: transfer.fromAccountId,
         toAccountId: transfer.toAccountId,

@@ -144,10 +144,10 @@ Current state:
 
 - AuditLog model, migration, service, and `/api/audit` route exist.
 - Auth, accounts, transactions, transfers, budget goals, and savings allocation write audit logs.
+- Request ID, IP, and user-agent metadata are propagated into audited service calls for key money/security actions.
 
 Still needed:
 
-- Add request metadata propagation into service-level audit logs.
 - Expand audit coverage to categories, tags, recurring transactions, exports, and cron execution.
 - Add audit tests around money-changing service transactions.
 - Add admin/internal retention policy.
@@ -178,12 +178,14 @@ Current state:
 - Central `AppError` and error formatter exist.
 - Fastify error handler and not-found handler are registered.
 - Zod errors and Prisma unique constraint errors have consistent response shapes.
+- Legacy controller catch blocks have been removed, so controllers now flow through the central error handler.
+- Common business/service errors now use typed `AppError` helpers.
 
 Still needed:
 
-- Request IDs.
 - Structured logs.
 - Health check with database and Redis readiness.
+- Route-level tests for representative centralized error responses.
 
 Target error shape:
 

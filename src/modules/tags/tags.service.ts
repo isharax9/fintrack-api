@@ -1,5 +1,6 @@
 import { prisma } from '../../config/db';
 import { CreateTagInput, UpdateTagInput } from './tags.schema';
+import { notFound } from '../../utils/errors';
 
 export const listTags = async (userId: string) => {
   return prisma.tag.findMany({
@@ -23,7 +24,7 @@ export const updateTag = async (userId: string, id: string, data: UpdateTagInput
   });
 
   if (!tag) {
-    throw new Error('Tag not found');
+    throw notFound('Tag not found');
   }
 
   return prisma.tag.update({
@@ -38,7 +39,7 @@ export const deleteTag = async (userId: string, id: string) => {
   });
 
   if (!tag) {
-    throw new Error('Tag not found');
+    throw notFound('Tag not found');
   }
 
   return prisma.tag.delete({

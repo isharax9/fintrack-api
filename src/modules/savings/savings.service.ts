@@ -1,6 +1,8 @@
 import { prisma } from '../../config/db';
 import { CreateSavingsGoalInput, UpdateSavingsGoalInput, AllocateFundsInput } from './savings.schema';
 import { createAuditLog } from '../audit/audit.service';
+import { RequestMetadata } from '../../utils/requestContext';
+import { badRequest, notFound } from '../../utils/errors';
 
 export const getBucket = async (userId: string) => {
   let bucket = await prisma.savingsBucket.findUnique({ where: { userId } });
@@ -30,7 +32,7 @@ export const createGoal = async (userId: string, data: CreateSavingsGoalInput) =
 
 export const updateGoal = async (userId: string, id: string, data: UpdateSavingsGoalInput) => {
   const goal = await prisma.savingsGoal.findFirst({ where: { id, userId } });
-  if (!goal) throw new Error('Goal not found');
+  if (!goal) throw notFound('Goal not found');
 
   return prisma.savingsGoal.update({
     where: { id },
@@ -42,9 +44,9 @@ export const updateGoal = async (userId: string, id: string, data: UpdateSavings
   });
 };
 
-export const allocateGoalFunds = async (userId: string, id: string, data: AllocateFundsInput) => {
+export const allocateGoalFunds = async (userId: string, id: string, data: AllocateFundsInput, metadata: RequestMetadata) => {
   const goal = await prisma.savingsGoal.findFirst({ where: { id, userId } });
-  if (!goal) throw new Error('Goal not found');
+  if (!goal) throw notFound('Goal not found');
 
   return prisma.$transaction(async (tx) => {
     let bucket = await tx.savingsBucket.findUnique({ where: { userId } });
@@ -53,7 +55,7 @@ export const allocateGoalFunds = async (userId: string, id: string, data: Alloca
     }
 
     if (Number(bucket.balance) < data.amount) {
-      throw new Error('Insufficient funds in Savings Bucket');
+      throw badRequest('Insufficient funds in Savings Bucket');
     }
 
     await tx.savingsBucket.update({
@@ -71,6 +73,7 @@ export const allocateGoalFunds = async (userId: string, id: string, data: Alloca
       action: 'SAVINGS_GOAL_ALLOCATED',
       entityType: 'SavingsGoal',
       entityId: id,
+      ...metadata,
       metadata: { amount: data.amount },
     }, tx);
 
@@ -80,7 +83,7 @@ export const allocateGoalFunds = async (userId: string, id: string, data: Alloca
 
 export const deleteGoal = async (userId: string, id: string) => {
   const goal = await prisma.savingsGoal.findFirst({ where: { id, userId } });
-  if (!goal) throw new Error('Goal not found');
+  if (!goal) throw notFound('Goal not found');
 
   return prisma.$transaction(async (tx) => {
     // Return funds back to bucket

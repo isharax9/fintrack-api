@@ -1,5 +1,6 @@
 import { prisma } from '../../config/db';
 import { UpdateUserInput } from './user.schema';
+import { notFound } from '../../utils/errors';
 
 export const getProfile = async (userId: string) => {
   const user = await prisma.user.findUnique({
@@ -13,7 +14,7 @@ export const getProfile = async (userId: string) => {
       updatedAt: true,
     }
   });
-  if (!user) throw new Error('User not found');
+  if (!user) throw notFound('User not found');
   return user;
 };
 
