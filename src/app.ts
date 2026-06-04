@@ -21,6 +21,8 @@ import tagsRoutes from './modules/tags/tags.routes';
 import savingsRoutes from './modules/savings/savings.routes';
 import exportsRoutes from './modules/exports/exports.routes';
 import recurringRoutes from './modules/recurring/recurring.routes';
+import auditRoutes from './modules/audit/audit.routes';
+import { errorHandler, notFound } from './utils/errors';
 
 import { initCronJobs } from './modules/cron/scheduler';
 
@@ -34,6 +36,11 @@ export function buildApp() {
   const app = Fastify({
     logger: true,
   }).withTypeProvider<TypeBoxTypeProvider>();
+
+  app.setErrorHandler(errorHandler);
+  app.setNotFoundHandler((request) => {
+    throw notFound(`Route ${request.method} ${request.url} not found`);
+  });
 
   // Register Custom Decorators
   app.decorate('authenticate', authenticate);
@@ -57,6 +64,7 @@ export function buildApp() {
   app.register(savingsRoutes, { prefix: '/api/savings' });
   app.register(exportsRoutes, { prefix: '/api/exports' });
   app.register(recurringRoutes, { prefix: '/api/recurring' });
+  app.register(auditRoutes, { prefix: '/api/audit' });
 
   // Initialize background tasks
   initCronJobs();

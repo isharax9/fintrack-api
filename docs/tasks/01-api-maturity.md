@@ -142,14 +142,15 @@ Acceptance criteria:
 
 Current state:
 
-- No audit trail.
+- AuditLog model, migration, service, and `/api/audit` route exist.
+- Auth, accounts, transactions, transfers, budget goals, and savings allocation write audit logs.
 
-Needed:
+Still needed:
 
-- Add `AuditLog` model.
-- Log money-changing and security-sensitive actions.
-- Include actor userId, action, entity type, entity id, before/after metadata, requestId, IP hash, user agent hash.
-- Avoid storing raw secrets or full tokens.
+- Add request metadata propagation into service-level audit logs.
+- Expand audit coverage to categories, tags, recurring transactions, exports, and cron execution.
+- Add audit tests around money-changing service transactions.
+- Add admin/internal retention policy.
 
 Actions to audit:
 
@@ -172,12 +173,16 @@ Acceptance criteria:
 
 ## 6. Error Handling And Observability
 
-Needed:
+Current state:
 
-- Central error classes and error response formatter.
+- Central `AppError` and error formatter exist.
+- Fastify error handler and not-found handler are registered.
+- Zod errors and Prisma unique constraint errors have consistent response shapes.
+
+Still needed:
+
 - Request IDs.
 - Structured logs.
-- Consistent validation errors.
 - Health check with database and Redis readiness.
 
 Target error shape:

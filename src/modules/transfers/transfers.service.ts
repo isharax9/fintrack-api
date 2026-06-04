@@ -1,5 +1,6 @@
 import { prisma } from '../../config/db';
 import { CreateTransferInput } from './transfers.schema';
+import { createAuditLog } from '../audit/audit.service';
 
 export const listTransfers = async (userId: string) => {
   return prisma.transfer.findMany({
@@ -41,6 +42,18 @@ export const createTransfer = async (userId: string, data: CreateTransferInput) 
       where: { id: data.toAccountId },
       data: { balance: { increment: data.amount } },
     });
+
+    await createAuditLog({
+      userId,
+      action: 'TRANSFER_CREATED',
+      entityType: 'Transfer',
+      entityId: transfer.id,
+      metadata: {
+        fromAccountId: transfer.fromAccountId,
+        toAccountId: transfer.toAccountId,
+        amount: transfer.amount.toString(),
+      },
+    }, tx);
 
     return transfer;
   });

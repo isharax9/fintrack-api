@@ -68,6 +68,8 @@ Main Prisma models:
 - `SavingsBucket`: unallocated saved money.
 - `SavingsGoal`: named savings target.
 - `RecurringTransaction`: scheduled transaction template.
+- `RefreshSession`: server-side refresh session with hashed rotating token.
+- `AuditLog`: user-visible audit trail for security and money-changing actions.
 
 ## Endpoint Summary
 
@@ -197,7 +199,13 @@ Missing for production: get one, update/reversal, delete policy, pagination, and
 | GET | `/api/exports/transactions/pdf` | Yes | none |
 | GET | `/api/exports/reports/pdf` | Yes | `month`, `year` |
 
-Known issue: summary PDF currently accepts `month` and `year`, but income and expense totals are not filtered by that period.
+### Audit Logs
+
+| Method | Path | Auth | Query |
+| --- | --- | --- | --- |
+| GET | `/api/audit` | Yes | `action?`, `entityType?`, `page?`, `limit?` |
+
+Audit logs include action, entity type, entity id, request id when available, hashed IP/user-agent when available, redacted metadata, and timestamp.
 
 ## Default Categories
 
@@ -216,13 +224,7 @@ These are seeded for each user on registration:
 
 ## Error Format
 
-Current shape:
-
-```json
-{ "message": "Human readable error" }
-```
-
-Production target:
+Centralized error shape:
 
 ```json
 {
@@ -239,8 +241,7 @@ Production target:
 
 - Add OpenAPI generation.
 - Add contract tests against this document.
-- Add database migrations and unique constraints.
-- Add consistent error codes.
+- Finish migrating existing legacy controller catch blocks to the central error handler.
 - Add pagination to all list endpoints.
 - Add timezone-aware reporting.
 - Add httpOnly-cookie refresh delivery when the frontend auth layer is rebuilt.

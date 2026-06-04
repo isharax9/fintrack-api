@@ -1,5 +1,6 @@
 import { prisma } from '../../config/db';
 import { CreateAccountInput, UpdateAccountInput } from './accounts.schema';
+import { createAuditLog } from '../audit/audit.service';
 
 export const listAccounts = async (userId: string) => {
   return prisma.account.findMany({
@@ -9,11 +10,23 @@ export const listAccounts = async (userId: string) => {
 };
 
 export const createAccount = async (userId: string, data: CreateAccountInput) => {
-  return prisma.account.create({
-    data: {
+  return prisma.$transaction(async (tx) => {
+    const account = await tx.account.create({
+      data: {
+        userId,
+        ...data,
+      },
+    });
+
+    await createAuditLog({
       userId,
-      ...data,
-    },
+      action: 'ACCOUNT_CREATED',
+      entityType: 'Account',
+      entityId: account.id,
+      metadata: { name: account.name, type: account.type },
+    }, tx);
+
+    return account;
   });
 };
 
@@ -26,9 +39,21 @@ export const updateAccount = async (userId: string, id: string, data: UpdateAcco
     throw new Error('Account not found');
   }
 
-  return prisma.account.update({
-    where: { id },
-    data,
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.account.update({
+      where: { id },
+      data,
+    });
+
+    await createAuditLog({
+      userId,
+      action: 'ACCOUNT_UPDATED',
+      entityType: 'Account',
+      entityId: updated.id,
+      metadata: { previousName: account.name, name: updated.name, previousType: account.type, type: updated.type },
+    }, tx);
+
+    return updated;
   });
 };
 
@@ -59,7 +84,19 @@ export const deleteAccount = async (userId: string, id: string) => {
     throw new Error('Cannot delete an account with transactions, transfers, or recurring transactions');
   }
 
-  return prisma.account.delete({
-    where: { id },
+  return prisma.$transaction(async (tx) => {
+    const deleted = await tx.account.delete({
+      where: { id },
+    });
+
+    await createAuditLog({
+      userId,
+      action: 'ACCOUNT_DELETED',
+      entityType: 'Account',
+      entityId: id,
+      metadata: { name: deleted.name, type: deleted.type },
+    }, tx);
+
+    return deleted;
   });
 };

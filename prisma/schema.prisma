@@ -25,6 +25,7 @@ model User {
   savingsBuckets        SavingsBucket[]
   savingsGoals          SavingsGoal[]
   refreshSessions       RefreshSession[]
+  auditLogs             AuditLog[]
 }
 
 model Account {
@@ -184,6 +185,24 @@ model RefreshSession {
 
   @@index([userId, revokedAt])
   @@index([familyId])
+}
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action        String
+  entityType    String
+  entityId      String?
+  requestId     String?
+  ipHash        String?
+  userAgentHash String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([entityType, entityId])
+  @@index([action, createdAt])
 }
 
 enum AccountType {

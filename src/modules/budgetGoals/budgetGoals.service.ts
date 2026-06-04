@@ -1,5 +1,6 @@
 import { prisma } from '../../config/db';
 import { CreateBudgetGoalInput, UpdateBudgetGoalInput, BudgetGoalQuery } from './budgetGoals.schema';
+import { createAuditLog } from '../audit/audit.service';
 
 export const listBudgetGoals = async (userId: string, query: BudgetGoalQuery) => {
   return prisma.budgetGoal.findMany({
@@ -28,12 +29,24 @@ export const createBudgetGoal = async (userId: string, data: CreateBudgetGoalInp
 
   if (existing) throw new Error('Budget goal already exists for this category in this month');
 
-  return prisma.budgetGoal.create({
-    data: {
-      ...data,
-      userId
-    },
-    include: { category: true }
+  return prisma.$transaction(async (tx) => {
+    const goal = await tx.budgetGoal.create({
+      data: {
+        ...data,
+        userId
+      },
+      include: { category: true }
+    });
+
+    await createAuditLog({
+      userId,
+      action: 'BUDGET_GOAL_CREATED',
+      entityType: 'BudgetGoal',
+      entityId: goal.id,
+      metadata: { categoryId: goal.categoryId, month: goal.month, year: goal.year, limitAmount: goal.limitAmount.toString() },
+    }, tx);
+
+    return goal;
   });
 };
 
@@ -41,10 +54,22 @@ export const updateBudgetGoal = async (userId: string, id: string, data: UpdateB
   const goal = await prisma.budgetGoal.findUnique({ where: { id } });
   if (!goal || goal.userId !== userId) throw new Error('Budget goal not found');
 
-  return prisma.budgetGoal.update({
-    where: { id },
-    data,
-    include: { category: true }
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.budgetGoal.update({
+      where: { id },
+      data,
+      include: { category: true }
+    });
+
+    await createAuditLog({
+      userId,
+      action: 'BUDGET_GOAL_UPDATED',
+      entityType: 'BudgetGoal',
+      entityId: updated.id,
+      metadata: { previousLimitAmount: goal.limitAmount.toString(), limitAmount: updated.limitAmount.toString() },
+    }, tx);
+
+    return updated;
   });
 };
 
@@ -52,5 +77,14 @@ export const deleteBudgetGoal = async (userId: string, id: string) => {
   const goal = await prisma.budgetGoal.findUnique({ where: { id } });
   if (!goal || goal.userId !== userId) throw new Error('Budget goal not found');
 
-  await prisma.budgetGoal.delete({ where: { id } });
+  await prisma.$transaction(async (tx) => {
+    await tx.budgetGoal.delete({ where: { id } });
+    await createAuditLog({
+      userId,
+      action: 'BUDGET_GOAL_DELETED',
+      entityType: 'BudgetGoal',
+      entityId: id,
+      metadata: { categoryId: goal.categoryId, month: goal.month, year: goal.year, limitAmount: goal.limitAmount.toString() },
+    }, tx);
+  });
 };

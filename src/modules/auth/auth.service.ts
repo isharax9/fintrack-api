@@ -7,6 +7,8 @@ import { RegisterInput, LoginInput, ResetPasswordInput } from './auth.schema';
 import jwt from 'jsonwebtoken';
 import { env } from '../../config/env';
 import crypto from 'crypto';
+import { createAuditLog } from '../audit/audit.service';
+import { hashOptional } from '../../utils/security';
 
 type SessionMetadata = {
   userAgent?: string | string[];
@@ -28,11 +30,6 @@ const defaultCategories = [
 
 const hashValue = (value: string) =>
   crypto.createHash('sha256').update(value).digest('hex');
-
-const hashOptional = (value?: string | string[]) => {
-  if (!value) return undefined;
-  return hashValue(Array.isArray(value) ? value.join(',') : value);
-};
 
 const durationToMs = (value: string) => {
   const match = /^(\d+)([smhd])$/.exec(value.trim());
@@ -111,6 +108,14 @@ export const register = async (input: RegisterInput, metadata: SessionMetadata =
   });
 
   const tokens = await createSessionTokens(user.id, metadata);
+  await createAuditLog({
+    userId: user.id,
+    action: 'AUTH_REGISTER',
+    entityType: 'User',
+    entityId: user.id,
+    ip: metadata.ip,
+    userAgent: metadata.userAgent,
+  });
 
   return { ...tokens, user: serializeUser(user) };
 };
@@ -123,6 +128,13 @@ export const login = async (input: LoginInput, metadata: SessionMetadata = {}) =
   if (!isValid) throw new Error('Invalid credentials');
 
   const tokens = await createSessionTokens(user.id, metadata);
+  await createAuditLog({
+    userId: user.id,
+    action: 'AUTH_LOGIN',
+    entityType: 'RefreshSession',
+    ip: metadata.ip,
+    userAgent: metadata.userAgent,
+  });
 
   return { ...tokens, user: serializeUser(user) };
 };
@@ -167,6 +179,12 @@ export const refresh = async (refreshToken: string) => {
       lastUsedAt: new Date(),
     },
   });
+  await createAuditLog({
+    userId: payload.userId,
+    action: 'AUTH_REFRESH',
+    entityType: 'RefreshSession',
+    entityId: session.id,
+  });
 
   return { accessToken, refreshToken: nextRefreshToken };
 };
@@ -181,6 +199,12 @@ export const logout = async (userId: string, sessionId?: string) => {
       revokeReason: 'LOGOUT',
     },
   });
+  await createAuditLog({
+    userId,
+    action: 'AUTH_LOGOUT',
+    entityType: 'RefreshSession',
+    entityId: sessionId,
+  });
 };
 
 export const logoutAll = async (userId: string) => {
@@ -190,6 +214,11 @@ export const logoutAll = async (userId: string) => {
       revokedAt: new Date(),
       revokeReason: 'LOGOUT_ALL',
     },
+  });
+  await createAuditLog({
+    userId,
+    action: 'AUTH_LOGOUT_ALL',
+    entityType: 'RefreshSession',
   });
 };
 
@@ -207,6 +236,12 @@ export const generateOtp = async (email: string) => {
   }
 
   await sendOTP(email, otp);
+  await createAuditLog({
+    userId: user.id,
+    action: 'PASSWORD_RESET_REQUESTED',
+    entityType: 'User',
+    entityId: user.id,
+  });
 };
 
 export const verifyOtp = async (email: string, otp: string) => {
@@ -242,5 +277,11 @@ export const resetPassword = async (input: ResetPasswordInput) => {
       revokedAt: new Date(),
       revokeReason: 'PASSWORD_RESET',
     },
+  });
+  await createAuditLog({
+    userId: payload.userId,
+    action: 'PASSWORD_RESET_COMPLETED',
+    entityType: 'User',
+    entityId: payload.userId,
   });
 };

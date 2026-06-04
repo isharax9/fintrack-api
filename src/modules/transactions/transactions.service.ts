@@ -1,6 +1,7 @@
 import { prisma } from '../../config/db';
 import { CreateTransactionInput, UpdateTransactionInput, TransactionQuery } from './transactions.schema';
 import { Prisma } from '@prisma/client';
+import { createAuditLog } from '../audit/audit.service';
 
 export const listTransactions = async (userId: string, query: TransactionQuery) => {
   const where: Prisma.TransactionWhereInput = { userId };
@@ -91,6 +92,19 @@ export const createTransaction = async (userId: string, data: CreateTransactionI
       });
     }
 
+    await createAuditLog({
+      userId,
+      action: 'TRANSACTION_CREATED',
+      entityType: 'Transaction',
+      entityId: transaction.id,
+      metadata: {
+        accountId: transaction.accountId,
+        categoryId: transaction.categoryId,
+        type: transaction.type,
+        amount: transaction.amount.toString(),
+      },
+    }, tx);
+
     return transaction;
   });
 };
@@ -175,6 +189,21 @@ export const updateTransaction = async (userId: string, id: string, data: Update
       });
     }
 
+    await createAuditLog({
+      userId,
+      action: 'TRANSACTION_UPDATED',
+      entityType: 'Transaction',
+      entityId: updated.id,
+      metadata: {
+        previousAccountId: original.accountId,
+        accountId: updated.accountId,
+        previousAmount: original.amount.toString(),
+        amount: updated.amount.toString(),
+        previousType: original.type,
+        type: updated.type,
+      },
+    }, tx);
+
     return updated;
   });
 };
@@ -191,5 +220,17 @@ export const deleteTransaction = async (userId: string, id: string) => {
       });
     }
     await tx.transaction.delete({ where: { id } });
+    await createAuditLog({
+      userId,
+      action: 'TRANSACTION_DELETED',
+      entityType: 'Transaction',
+      entityId: original.id,
+      metadata: {
+        accountId: original.accountId,
+        categoryId: original.categoryId,
+        type: original.type,
+        amount: original.amount.toString(),
+      },
+    }, tx);
   });
 };

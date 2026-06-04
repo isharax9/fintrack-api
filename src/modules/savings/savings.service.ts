@@ -1,5 +1,6 @@
 import { prisma } from '../../config/db';
 import { CreateSavingsGoalInput, UpdateSavingsGoalInput, AllocateFundsInput } from './savings.schema';
+import { createAuditLog } from '../audit/audit.service';
 
 export const getBucket = async (userId: string) => {
   let bucket = await prisma.savingsBucket.findUnique({ where: { userId } });
@@ -60,10 +61,20 @@ export const allocateGoalFunds = async (userId: string, id: string, data: Alloca
       data: { balance: { decrement: data.amount } },
     });
 
-    return tx.savingsGoal.update({
+    const updatedGoal = await tx.savingsGoal.update({
       where: { id },
       data: { currentAmount: { increment: data.amount } },
     });
+
+    await createAuditLog({
+      userId,
+      action: 'SAVINGS_GOAL_ALLOCATED',
+      entityType: 'SavingsGoal',
+      entityId: id,
+      metadata: { amount: data.amount },
+    }, tx);
+
+    return updatedGoal;
   });
 };
 
