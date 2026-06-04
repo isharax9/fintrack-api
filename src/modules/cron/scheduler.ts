@@ -11,6 +11,7 @@ export function initCronJobs() {
     try {
       const recurrings = await prisma.recurringTransaction.findMany({
         where: {
+          isActive: true,
           nextDate: { lte: now }
         }
       });
@@ -43,6 +44,7 @@ export function initCronJobs() {
           let nextDate = new Date(rec.nextDate);
           if (rec.frequency === 'DAILY') nextDate = addDays(nextDate, 1);
           if (rec.frequency === 'WEEKLY') nextDate = addWeeks(nextDate, 1);
+          if (rec.frequency === 'BIWEEKLY') nextDate = addWeeks(nextDate, 2);
           if (rec.frequency === 'MONTHLY') nextDate = addMonths(nextDate, 1);
           if (rec.frequency === 'YEARLY') nextDate = addYears(nextDate, 1);
 

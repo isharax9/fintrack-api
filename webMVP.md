@@ -283,7 +283,7 @@ The `web-designs-to-inspire` and `stitch_financial_dashboard_overview` folders p
 
 1. Fix frontend lint errors.
 2. Add Accounts page.
-3. Add recurring transaction backend CRUD, then wire `/recurring`.
+3. Wire `/recurring` to the backend CRUD API.
 4. Fix auth token storage.
 5. Add onboarding.
 6. Replace hardcoded dashboard data.

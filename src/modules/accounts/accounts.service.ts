@@ -41,6 +41,24 @@ export const deleteAccount = async (userId: string, id: string) => {
     throw new Error('Account not found');
   }
 
+  const linkedUsage = await prisma.account.findFirst({
+    where: {
+      id,
+      userId,
+      OR: [
+        { transactions: { some: {} } },
+        { transfersFrom: { some: {} } },
+        { transfersTo: { some: {} } },
+        { recurringTransactions: { some: {} } },
+      ],
+    },
+    select: { id: true },
+  });
+
+  if (linkedUsage) {
+    throw new Error('Cannot delete an account with transactions, transfers, or recurring transactions');
+  }
+
   return prisma.account.delete({
     where: { id },
   });

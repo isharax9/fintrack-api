@@ -12,7 +12,9 @@ export const createTransactionSchema = z.object({
   tagIds: z.array(z.string().cuid()).optional(),
 });
 
-export const updateTransactionSchema = createTransactionSchema.partial();
+export const updateTransactionSchema = createTransactionSchema.partial().extend({
+  accountId: z.string().cuid().nullable().optional(),
+});
 
 export const transactionQuerySchema = z.object({
   type: z.nativeEnum(TransactionType).optional(),

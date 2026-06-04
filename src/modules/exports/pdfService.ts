@@ -41,13 +41,16 @@ export const generateSummaryPdf = async (userId: string, month: number, year: nu
   doc.fontSize(20).text(`FinTrack - Summary Report (${month}/${year})`, { align: 'center' });
   doc.moveDown();
 
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+
   // Basic stats
   const incomeAgg = await prisma.transaction.aggregate({
-    where: { userId, type: 'INCOME' },
+    where: { userId, type: 'INCOME', date: { gte: startDate, lte: endDate } },
     _sum: { amount: true }
   });
   const expenseAgg = await prisma.transaction.aggregate({
-    where: { userId, type: 'EXPENSE' },
+    where: { userId, type: 'EXPENSE', date: { gte: startDate, lte: endDate } },
     _sum: { amount: true }
   });
 

@@ -6,6 +6,9 @@ export const createTransferSchema = z.object({
   amount: z.number().positive(),
   date: z.string().datetime().optional(),
   notes: z.string().optional(),
+}).refine((data) => data.fromAccountId !== data.toAccountId, {
+  message: 'Transfer accounts must be different',
+  path: ['toAccountId'],
 });
 
 export const transferParamsSchema = z.object({

@@ -75,7 +75,7 @@ These are not blockers for a demo, but they are blockers for a serious productio
 - OTP generation uses `Math.random`; use cryptographic randomness.
 - Rate limiting depends on plugin config but needs verification against Redis and route-specific policies.
 - Background jobs run inside every API process, which can duplicate work in multi-instance deployments.
-- Recurring transactions have a Prisma model and cron processor, but no CRUD API routes.
+- Recurring transactions have CRUD API routes and cron processing. Missing advanced operations: skip next run, run now, execution history, and failure retry visibility.
 - Transfers have create/list only; no get, update, delete, filters, or reversal workflow.
 - Accounts do not prevent deletion when linked data exists; current deletion can leave transactions with null accounts and transfers affected by cascade.
 - Transaction tag ownership is not validated when connecting tag IDs.
@@ -94,7 +94,7 @@ These are not blockers for a demo, but they are blockers for a serious productio
 - Dashboard contains hardcoded upcoming bills and comparison values.
 - Search UI in the navbar is visual only.
 - Notifications/messages are visual only.
-- Recurring transactions page has no matching backend CRUD API.
+- Recurring transactions page still needs to be wired to the backend CRUD API.
 - No test setup for components, hooks, or end-to-end flows.
 - No accessibility audit, keyboard test pass, or responsive screenshot verification.
 
@@ -128,7 +128,7 @@ FinTrack should not be called production grade until these are true:
 
 ### Phase 2: Complete Current Feature Set
 
-1. Add recurring transaction CRUD APIs.
+1. Wire the recurring transaction frontend page to the new backend CRUD APIs.
 2. Add accounts detail page and account transaction filtering.
 3. Add transfer detail, filters, and delete/reversal behavior.
 4. Add tag ownership validation and tag management UI.
@@ -166,5 +166,4 @@ Start here:
 2. Add backend tests for auth and transaction balance updates.
 3. Add Prisma migration workflow.
 4. Update auth storage to production-safe cookies or a backend-for-frontend session route.
-5. Implement recurring transaction CRUD API because the frontend already has a route for it.
-
+5. Wire the frontend recurring page to `/api/recurring`.

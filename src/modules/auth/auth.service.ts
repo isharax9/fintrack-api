@@ -6,6 +6,7 @@ import { sendOTP } from '../../utils/email';
 import { RegisterInput, LoginInput, ResetPasswordInput } from './auth.schema';
 import jwt from 'jsonwebtoken';
 import { env } from '../../config/env';
+import crypto from 'crypto';
 
 export const register = async (input: RegisterInput) => {
   const existingUser = await prisma.user.findUnique({ where: { email: input.email } });
@@ -101,7 +102,7 @@ export const generateOtp = async (email: string) => {
     return;
   }
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digits
+  const otp = crypto.randomInt(100000, 1000000).toString();
 
   if (redis) {
     await redis.set(`otp:${email}`, otp, 'EX', 10 * 60); // 10 minutes

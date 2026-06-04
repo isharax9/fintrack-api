@@ -148,6 +148,18 @@ Default categories cannot be deleted.
 
 Missing for production: get one, update/reversal, delete policy, pagination, and date filters.
 
+### Recurring Transactions
+
+| Method | Path | Auth | Body / Query |
+| --- | --- | --- | --- |
+| GET | `/api/recurring` | Yes | `type?`, `accountId?`, `categoryId?`, `isActive?`, `page?`, `limit?` |
+| POST | `/api/recurring` | Yes | `{ accountId, title, amount, type, categoryId, frequency, nextDate, notes?, isActive? }` |
+| GET | `/api/recurring/:id` | Yes | none |
+| PUT | `/api/recurring/:id` | Yes | partial recurring transaction body |
+| DELETE | `/api/recurring/:id` | Yes | none |
+
+`frequency` is one of `DAILY`, `WEEKLY`, `BIWEEKLY`, `MONTHLY`, `YEARLY`.
+
 ### Budget Goals
 
 | Method | Path | Auth | Body / Query |
@@ -230,4 +242,4 @@ Production target:
 - Add pagination to all list endpoints.
 - Add timezone-aware reporting.
 - Add session and refresh token hardening.
-- Add recurring transaction CRUD routes.
+- Add richer recurring transaction operations such as skip next run and run now.

@@ -47,6 +47,14 @@ export const createTransaction = async (userId: string, data: CreateTransactionI
     if (!account || account.userId !== userId) throw new Error('Invalid account');
   }
 
+  if (data.tagIds && data.tagIds.length > 0) {
+    const tags = await prisma.tag.findMany({
+      where: { id: { in: data.tagIds }, userId },
+      select: { id: true },
+    });
+    if (tags.length !== new Set(data.tagIds).size) throw new Error('Invalid tag');
+  }
+
   return prisma.$transaction(async (tx) => {
     // 1. Create transaction with optional tags
     const _data: Prisma.TransactionCreateInput = {
@@ -110,6 +118,14 @@ export const updateTransaction = async (userId: string, id: string, data: Update
     if (!account || account.userId !== userId) throw new Error('Invalid account');
   }
 
+  if (data.tagIds && data.tagIds.length > 0) {
+    const tags = await prisma.tag.findMany({
+      where: { id: { in: data.tagIds }, userId },
+      select: { id: true },
+    });
+    if (tags.length !== new Set(data.tagIds).size) throw new Error('Invalid tag');
+  }
+
   return prisma.$transaction(async (tx) => {
     // 1. Reverse the effect on original account if needed
     if (original.accountId) {
@@ -132,7 +148,7 @@ export const updateTransaction = async (userId: string, id: string, data: Update
     if (data.categoryId) _updateData.category = { connect: { id: data.categoryId } };
     if (data.accountId !== undefined) {
       if (data.accountId === null) {
-        // we can't easily disconnect using standard setup without explicit logic, but let's assume it's set null or ignored if not provided.
+        _updateData.account = { disconnect: true };
       } else {
         _updateData.account = { connect: { id: data.accountId } };
       }
@@ -177,4 +193,3 @@ export const deleteTransaction = async (userId: string, id: string) => {
     await tx.transaction.delete({ where: { id } });
   });
 };
-

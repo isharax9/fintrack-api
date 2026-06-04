@@ -20,6 +20,7 @@ import transfersRoutes from './modules/transfers/transfers.routes';
 import tagsRoutes from './modules/tags/tags.routes';
 import savingsRoutes from './modules/savings/savings.routes';
 import exportsRoutes from './modules/exports/exports.routes';
+import recurringRoutes from './modules/recurring/recurring.routes';
 
 import { initCronJobs } from './modules/cron/scheduler';
 
@@ -55,6 +56,7 @@ export function buildApp() {
   app.register(tagsRoutes, { prefix: '/api/tags' });
   app.register(savingsRoutes, { prefix: '/api/savings' });
   app.register(exportsRoutes, { prefix: '/api/exports' });
+  app.register(recurringRoutes, { prefix: '/api/recurring' });
 
   // Initialize background tasks
   initCronJobs();
@@ -66,4 +68,3 @@ export function buildApp() {
 
   return app;
 }
-
