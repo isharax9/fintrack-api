@@ -127,11 +127,12 @@ Current state:
 - OpenAPI JSON is available at `/openapi.json`.
 - Bearer auth security scheme is defined.
 - Auth routes have request/response schemas.
+- Every route group has OpenAPI request/response schemas, including params and querystring contracts.
 - Protected route groups are tagged and marked with bearer auth.
+- Contract tests assert every public route appears in `/openapi.json`.
 
 Still needed:
 
-- Define full request/response schemas for every route.
 - Generate frontend API types from `/openapi.json`.
 - Keep `API_DOCS.md` as human summary, not the only source of truth.
 
@@ -139,6 +140,7 @@ Acceptance criteria:
 
 - `/docs` works locally.
 - OpenAPI JSON includes route groups for auth, users, accounts, transactions, transfers, categories, tags, budgets, savings, recurring, reports, exports, and audit logs.
+- OpenAPI JSON documents `/health` and `/ready`.
 - Frontend can generate API types from the spec after route schemas are expanded.
 
 ## 5. Audit Logs
@@ -183,11 +185,12 @@ Current state:
 - Zod errors and Prisma unique constraint errors have consistent response shapes.
 - Legacy controller catch blocks have been removed, so controllers now flow through the central error handler.
 - Common business/service errors now use typed `AppError` helpers.
+- Fastify logging uses request IDs, configurable `LOG_LEVEL`, and redacts authorization/cookie/token/password fields.
+- `/health` is a dependency-free liveness endpoint.
+- `/ready` checks PostgreSQL and Redis readiness and returns dependency status, latency, request ID, and `503` when required dependencies are unavailable.
 
 Still needed:
 
-- Structured logs.
-- Health check with database and Redis readiness.
 - Route-level tests for representative centralized error responses.
 
 Target error shape:

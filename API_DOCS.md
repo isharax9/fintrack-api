@@ -30,6 +30,7 @@ OpenAPI:
 
 - Swagger UI: `http://localhost:5001/docs`
 - OpenAPI JSON: `http://localhost:5001/openapi.json`
+- `/openapi.json` is the source of truth for request bodies, params, querystrings, responses, auth requirements, and PDF export media types.
 
 ## Environment
 
@@ -82,7 +83,8 @@ Main Prisma models:
 
 | Method | Path | Auth | Notes |
 | --- | --- | --- | --- |
-| GET | `/health` | No | Service health and timestamp |
+| GET | `/health` | No | Liveness check with timestamp, uptime, and request ID |
+| GET | `/ready` | No | Readiness check for PostgreSQL and Redis with dependency status and latency; returns `503` when not ready |
 
 ### Auth
 
