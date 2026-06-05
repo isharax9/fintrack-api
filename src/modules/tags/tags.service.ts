@@ -1,6 +1,8 @@
 import { prisma } from '../../config/db';
 import { CreateTagInput, UpdateTagInput } from './tags.schema';
 import { notFound } from '../../utils/errors';
+import { createAuditLog } from '../audit/audit.service';
+import { RequestMetadata } from '../../utils/requestContext';
 
 export const listTags = async (userId: string) => {
   return prisma.tag.findMany({
@@ -9,16 +11,29 @@ export const listTags = async (userId: string) => {
   });
 };
 
-export const createTag = async (userId: string, data: CreateTagInput) => {
-  return prisma.tag.create({
-    data: {
+export const createTag = async (userId: string, data: CreateTagInput, metadata: RequestMetadata) => {
+  return prisma.$transaction(async (tx) => {
+    const tag = await tx.tag.create({
+      data: {
+        userId,
+        ...data,
+      },
+    });
+
+    await createAuditLog({
       userId,
-      ...data,
-    },
+      action: 'TAG_CREATED',
+      entityType: 'Tag',
+      entityId: tag.id,
+      ...metadata,
+      metadata: { name: tag.name },
+    }, tx);
+
+    return tag;
   });
 };
 
-export const updateTag = async (userId: string, id: string, data: UpdateTagInput) => {
+export const updateTag = async (userId: string, id: string, data: UpdateTagInput, metadata: RequestMetadata) => {
   const tag = await prisma.tag.findFirst({
     where: { id, userId },
   });
@@ -27,13 +42,26 @@ export const updateTag = async (userId: string, id: string, data: UpdateTagInput
     throw notFound('Tag not found');
   }
 
-  return prisma.tag.update({
-    where: { id },
-    data,
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.tag.update({
+      where: { id },
+      data,
+    });
+
+    await createAuditLog({
+      userId,
+      action: 'TAG_UPDATED',
+      entityType: 'Tag',
+      entityId: updated.id,
+      ...metadata,
+      metadata: { previousName: tag.name, name: updated.name },
+    }, tx);
+
+    return updated;
   });
 };
 
-export const deleteTag = async (userId: string, id: string) => {
+export const deleteTag = async (userId: string, id: string, metadata: RequestMetadata) => {
   const tag = await prisma.tag.findFirst({
     where: { id, userId },
   });
@@ -42,7 +70,20 @@ export const deleteTag = async (userId: string, id: string) => {
     throw notFound('Tag not found');
   }
 
-  return prisma.tag.delete({
-    where: { id },
+  return prisma.$transaction(async (tx) => {
+    const deleted = await tx.tag.delete({
+      where: { id },
+    });
+
+    await createAuditLog({
+      userId,
+      action: 'TAG_DELETED',
+      entityType: 'Tag',
+      entityId: id,
+      ...metadata,
+      metadata: { name: tag.name },
+    }, tx);
+
+    return deleted;
   });
 };

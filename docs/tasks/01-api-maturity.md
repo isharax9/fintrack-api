@@ -151,12 +151,11 @@ Acceptance criteria:
 Current state:
 
 - AuditLog model, migration, service, and `/api/audit` route exist.
-- Auth, accounts, transactions, transfers, budget goals, and savings allocation write audit logs.
+- Auth, accounts, transactions, transfers, budget goals, categories, tags, recurring transactions, exports, cron recurring execution, cron savings rollover, and savings allocation write audit logs.
 - Request ID, IP, and user-agent metadata are propagated into audited service calls for key money/security actions.
 
 Still needed:
 
-- Expand audit coverage to categories, tags, recurring transactions, exports, and cron execution.
 - Add audit tests around money-changing service transactions.
 - Add admin/internal retention policy.
 
@@ -169,6 +168,8 @@ Actions to audit:
 - Transaction create/update/delete.
 - Transfer create/reversal.
 - Budget create/update/delete.
+- Category create/update/delete.
+- Tag create/update/delete.
 - Savings allocation.
 - Recurring create/update/delete/executed.
 - Export generated.
@@ -219,8 +220,8 @@ Acceptance criteria:
 
 Needed:
 
-- Run `npm audit` and decide fix strategy.
-- Remove hardcoded secrets from Docker compose examples.
+- Keep `npm audit --audit-level=high` clean.
+- Keep hardcoded secrets out of Docker compose and examples.
 - Add stricter CORS config by environment.
 - Review rate limiting with Redis.
 - Add security headers verification.
@@ -229,8 +230,15 @@ Needed:
 Acceptance criteria:
 
 - No production secrets in source.
-- Known dependency vulnerabilities have documented decisions or fixes.
+- Known high-severity dependency vulnerabilities have fixes.
 - Auth and password reset routes have specific rate limits.
+
+Current state:
+
+- CI workflow runs Prisma generation/validation, TypeScript build, tests, and high-severity dependency audit.
+- Fastify, Fastify plugins, Nodemailer, and node-cron were upgraded to clear known high-severity audit findings.
+- Docker Compose reads secrets from environment variables instead of shipping built-in token/SMTP/database secrets.
+- `SECURITY.md` documents current gates, secret handling, dependency policy, and remaining security work.
 
 ## Deliverables
 

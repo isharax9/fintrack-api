@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { getAuthContext } from '../../utils/requestContext';
+import { getAuthContext, getRequestMetadata } from '../../utils/requestContext';
 import {
   createRecurringSchema,
   recurringParamsSchema,
@@ -16,7 +16,7 @@ export const list = async (request: FastifyRequest, reply: FastifyReply) => {
 
 export const create = async (request: FastifyRequest, reply: FastifyReply) => {
   const { userId } = getAuthContext(request);
-  const result = await recurringService.createRecurring(userId, createRecurringSchema.parse(request.body));
+  const result = await recurringService.createRecurring(userId, createRecurringSchema.parse(request.body), getRequestMetadata(request));
   return reply.code(201).send(result);
 };
 
@@ -30,13 +30,13 @@ export const getOne = async (request: FastifyRequest, reply: FastifyReply) => {
 export const update = async (request: FastifyRequest, reply: FastifyReply) => {
   const { userId } = getAuthContext(request);
   const { id } = recurringParamsSchema.parse(request.params);
-  const result = await recurringService.updateRecurring(userId, id, updateRecurringSchema.parse(request.body));
+  const result = await recurringService.updateRecurring(userId, id, updateRecurringSchema.parse(request.body), getRequestMetadata(request));
   return reply.send(result);
 };
 
 export const remove = async (request: FastifyRequest, reply: FastifyReply) => {
   const { userId } = getAuthContext(request);
   const { id } = recurringParamsSchema.parse(request.params);
-  await recurringService.deleteRecurring(userId, id);
+  await recurringService.deleteRecurring(userId, id, getRequestMetadata(request));
   return reply.send({ message: 'Recurring transaction deleted' });
 };

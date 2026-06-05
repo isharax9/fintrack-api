@@ -3,15 +3,15 @@ services:
     image: postgres:15-alpine
     container_name: fintrack_db
     environment:
-      POSTGRES_USER: fintrack_user
-      POSTGRES_PASSWORD: fintrack_password
-      POSTGRES_DB: fintrack_db
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fintrack_user -d fintrack_db"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -42,21 +42,21 @@ services:
     ports:
       - "5001:5001"
     environment:
-      - DATABASE_URL=postgresql://fintrack_user:fintrack_password@db:5432/fintrack_db?schema=public
+      - DATABASE_URL=postgresql://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}?schema=public
       - REDIS_URL=redis://redis:6379
-      - ACCESS_TOKEN_SECRET=super_secret_access_token_key_123!
-      - REFRESH_TOKEN_SECRET=super_secret_refresh_token_key_123!
-      - ACCESS_TOKEN_EXPIRES_IN=15m
-      - REFRESH_TOKEN_EXPIRES_IN=7d
-      - BCRYPT_SALT_ROUNDS=12
-      - SMTP_HOST=smtp.ethereal.email
-      - SMTP_PORT=587
-      - SMTP_USER=test_user
-      - SMTP_PASS=test_pass
-      - EMAIL_FROM=FinTrack <noreply@fintrack.dev>
-      - APP_NAME=FinTrack
-      - FRONTEND_URL=http://localhost:3000
-      - PORT=5001
+      - ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET:?Set ACCESS_TOKEN_SECRET in .env}
+      - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET:?Set REFRESH_TOKEN_SECRET in .env}
+      - ACCESS_TOKEN_EXPIRES_IN=${ACCESS_TOKEN_EXPIRES_IN:-15m}
+      - REFRESH_TOKEN_EXPIRES_IN=${REFRESH_TOKEN_EXPIRES_IN:-7d}
+      - BCRYPT_SALT_ROUNDS=${BCRYPT_SALT_ROUNDS:-12}
+      - SMTP_HOST=${SMTP_HOST:?Set SMTP_HOST in .env}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:?Set SMTP_USER in .env}
+      - SMTP_PASS=${SMTP_PASS:?Set SMTP_PASS in .env}
+      - EMAIL_FROM=${EMAIL_FROM:-FinTrack <noreply@fintrack.dev>}
+      - APP_NAME=${APP_NAME:-FinTrack}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - PORT=${PORT:-5001}
     # Apply committed migrations before starting the API.
     command: sh -c "npx prisma migrate deploy && npx prisma db seed && npm run start"
     volumes:

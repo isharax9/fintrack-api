@@ -1,6 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/db';
 import { badRequest, notFound } from '../../utils/errors';
+import { RequestMetadata } from '../../utils/requestContext';
+import { createAuditLog } from '../audit/audit.service';
 import { CreateRecurringInput, RecurringQuery, UpdateRecurringInput } from './recurring.schema';
 
 const assertOwnedAccount = async (userId: string, accountId: string) => {
@@ -45,24 +47,44 @@ export const listRecurring = async (userId: string, query: RecurringQuery) => {
   };
 };
 
-export const createRecurring = async (userId: string, data: CreateRecurringInput) => {
+export const createRecurring = async (userId: string, data: CreateRecurringInput, metadata: RequestMetadata) => {
   await assertOwnedAccount(userId, data.accountId);
   await assertOwnedCategory(userId, data.categoryId);
 
-  return prisma.recurringTransaction.create({
-    data: {
+  return prisma.$transaction(async (tx) => {
+    const recurring = await tx.recurringTransaction.create({
+      data: {
+        userId,
+        accountId: data.accountId,
+        categoryId: data.categoryId,
+        title: data.title,
+        amount: data.amount,
+        type: data.type,
+        frequency: data.frequency,
+        nextDate: new Date(data.nextDate),
+        notes: data.notes,
+        isActive: data.isActive,
+      },
+      include: { account: true, category: true },
+    });
+
+    await createAuditLog({
       userId,
-      accountId: data.accountId,
-      categoryId: data.categoryId,
-      title: data.title,
-      amount: data.amount,
-      type: data.type,
-      frequency: data.frequency,
-      nextDate: new Date(data.nextDate),
-      notes: data.notes,
-      isActive: data.isActive,
-    },
-    include: { account: true, category: true },
+      action: 'RECURRING_CREATED',
+      entityType: 'RecurringTransaction',
+      entityId: recurring.id,
+      ...metadata,
+      metadata: {
+        accountId: recurring.accountId,
+        categoryId: recurring.categoryId,
+        type: recurring.type,
+        frequency: recurring.frequency,
+        amount: recurring.amount.toString(),
+        nextDate: recurring.nextDate.toISOString(),
+      },
+    }, tx);
+
+    return recurring;
   });
 };
 
@@ -76,30 +98,75 @@ export const getRecurring = async (userId: string, id: string) => {
   return recurring;
 };
 
-export const updateRecurring = async (userId: string, id: string, data: UpdateRecurringInput) => {
-  await getRecurring(userId, id);
+export const updateRecurring = async (userId: string, id: string, data: UpdateRecurringInput, metadata: RequestMetadata) => {
+  const original = await getRecurring(userId, id);
 
   if (data.accountId) await assertOwnedAccount(userId, data.accountId);
   if (data.categoryId) await assertOwnedCategory(userId, data.categoryId);
 
-  return prisma.recurringTransaction.update({
-    where: { id },
-    data: {
-      accountId: data.accountId,
-      categoryId: data.categoryId,
-      title: data.title,
-      amount: data.amount,
-      type: data.type,
-      frequency: data.frequency,
-      nextDate: data.nextDate ? new Date(data.nextDate) : undefined,
-      notes: data.notes,
-      isActive: data.isActive,
-    },
-    include: { account: true, category: true },
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.recurringTransaction.update({
+      where: { id },
+      data: {
+        accountId: data.accountId,
+        categoryId: data.categoryId,
+        title: data.title,
+        amount: data.amount,
+        type: data.type,
+        frequency: data.frequency,
+        nextDate: data.nextDate ? new Date(data.nextDate) : undefined,
+        notes: data.notes,
+        isActive: data.isActive,
+      },
+      include: { account: true, category: true },
+    });
+
+    await createAuditLog({
+      userId,
+      action: 'RECURRING_UPDATED',
+      entityType: 'RecurringTransaction',
+      entityId: updated.id,
+      ...metadata,
+      metadata: {
+        previousAccountId: original.accountId,
+        accountId: updated.accountId,
+        previousCategoryId: original.categoryId,
+        categoryId: updated.categoryId,
+        previousType: original.type,
+        type: updated.type,
+        previousFrequency: original.frequency,
+        frequency: updated.frequency,
+        previousAmount: original.amount.toString(),
+        amount: updated.amount.toString(),
+        previousNextDate: original.nextDate.toISOString(),
+        nextDate: updated.nextDate.toISOString(),
+        previousIsActive: original.isActive,
+        isActive: updated.isActive,
+      },
+    }, tx);
+
+    return updated;
   });
 };
 
-export const deleteRecurring = async (userId: string, id: string) => {
-  await getRecurring(userId, id);
-  await prisma.recurringTransaction.delete({ where: { id } });
+export const deleteRecurring = async (userId: string, id: string, metadata: RequestMetadata) => {
+  const recurring = await getRecurring(userId, id);
+  await prisma.$transaction(async (tx) => {
+    await tx.recurringTransaction.delete({ where: { id } });
+    await createAuditLog({
+      userId,
+      action: 'RECURRING_DELETED',
+      entityType: 'RecurringTransaction',
+      entityId: id,
+      ...metadata,
+      metadata: {
+        accountId: recurring.accountId,
+        categoryId: recurring.categoryId,
+        type: recurring.type,
+        frequency: recurring.frequency,
+        amount: recurring.amount.toString(),
+        nextDate: recurring.nextDate.toISOString(),
+      },
+    }, tx);
+  });
 };

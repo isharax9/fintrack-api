@@ -1,11 +1,28 @@
 import cron from 'node-cron';
 import { prisma } from '../../config/db';
 import { addDays, addWeeks, addMonths, addYears, format, startOfMonth, endOfMonth } from 'date-fns';
+import { createAuditLog } from '../audit/audit.service';
+
+const logCron = (level: 'info' | 'error', message: string, data: Record<string, unknown> = {}) => {
+  const payload = JSON.stringify({
+    level,
+    source: 'cron',
+    message,
+    timestamp: new Date().toISOString(),
+    ...data,
+  });
+
+  if (level === 'error') {
+    console.error(payload);
+  } else {
+    console.info(payload);
+  }
+};
 
 export function initCronJobs() {
   // 1. Process Recurring Transactions (Runs everyday at exactly midnight)
   cron.schedule('0 0 * * *', async () => {
-    console.log('[Cron] Processing recurring transactions...');
+    logCron('info', 'Processing recurring transactions');
     const now = new Date();
     
     try {
@@ -21,7 +38,7 @@ export function initCronJobs() {
           // Add transaction
           const incrementValue = rec.type === 'INCOME' ? rec.amount : -rec.amount;
 
-          await tx.transaction.create({
+          const transaction = await tx.transaction.create({
             data: {
               userId: rec.userId,
               accountId: rec.accountId,
@@ -52,11 +69,30 @@ export function initCronJobs() {
             where: { id: rec.id },
             data: { nextDate }
           });
+
+          await createAuditLog({
+            userId: rec.userId,
+            action: 'RECURRING_EXECUTED',
+            entityType: 'RecurringTransaction',
+            entityId: rec.id,
+            metadata: {
+              transactionId: transaction.id,
+              accountId: rec.accountId,
+              categoryId: rec.categoryId,
+              type: rec.type,
+              frequency: rec.frequency,
+              amount: rec.amount.toString(),
+              previousNextDate: rec.nextDate.toISOString(),
+              nextDate: nextDate.toISOString(),
+            },
+          }, tx);
         });
       }
-      console.log(`[Cron] Processed ${recurrings.length} recurring transactions.`);
+      logCron('info', 'Processed recurring transactions', { count: recurrings.length });
     } catch (e) {
-      console.error('[Cron] Error processing recurring transactions:', e);
+      logCron('error', 'Error processing recurring transactions', {
+        error: e instanceof Error ? e.message : 'Unknown error',
+      });
     }
   });
 
@@ -67,7 +103,7 @@ export function initCronJobs() {
     const isEOM = today.getDate() === endOfMonth(today).getDate();
     if (!isEOM) return;
 
-    console.log('[Cron] Running end-of-month envelope rollover sweep...');
+    logCron('info', 'Running end-of-month envelope rollover sweep');
     const currentMonth = today.getMonth() + 1;
     const currentYear = today.getFullYear();
 
@@ -107,12 +143,30 @@ export function initCronJobs() {
               where: { id: bucket.id },
               data: { balance: { increment: unusedCredit } }
             });
+
+            await createAuditLog({
+              userId: goal.userId,
+              action: 'SAVINGS_ROLLOVER_CREDITED',
+              entityType: 'BudgetGoal',
+              entityId: goal.id,
+              metadata: {
+                categoryId: goal.categoryId,
+                month: currentMonth,
+                year: currentYear,
+                limitAmount: goal.limitAmount.toString(),
+                totalSpent,
+                unusedCredit,
+                bucketId: bucket.id,
+              },
+            }, tx);
           });
         }
       }
-      console.log('[Cron] End-of-month rollover complete.');
+      logCron('info', 'End-of-month rollover complete', { month: currentMonth, year: currentYear });
     } catch (e) {
-      console.error('[Cron] Error doing end-of-month sweep:', e);
+      logCron('error', 'Error doing end-of-month sweep', {
+        error: e instanceof Error ? e.message : 'Unknown error',
+      });
     }
   });
 }

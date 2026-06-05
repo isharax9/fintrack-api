@@ -1,0 +1,45 @@
+name: API CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  verify:
+    name: Build, Test, Audit
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://fintrack_user:fintrack_password@localhost:5432/fintrack_test?schema=public
+      REDIS_URL: redis://localhost:6379
+      ACCESS_TOKEN_SECRET: ci_access_secret
+      REFRESH_TOKEN_SECRET: ci_refresh_secret
+      ACCESS_TOKEN_EXPIRES_IN: 15m
+      REFRESH_TOKEN_EXPIRES_IN: 7d
+      BCRYPT_SALT_ROUNDS: 4
+      SMTP_HOST: smtp.example.com
+      SMTP_PORT: 587
+      SMTP_USER: ci
+      SMTP_PASS: ci
+      EMAIL_FROM: FinTrack <ci@fintrack.dev>
+      APP_NAME: FinTrack
+      FRONTEND_URL: http://localhost:3000
+      PORT: 5001
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify API
+        run: npm run ci:verify

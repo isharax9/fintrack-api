@@ -1,6 +1,7 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { getAuthContext } from '../../utils/requestContext';
+import { getAuthContext, getRequestMetadata } from '../../utils/requestContext';
+import { createAuditLog } from '../audit/audit.service';
 import * as pdfService from './pdfService';
 
 const querySchema = z.object({
@@ -11,6 +12,13 @@ const querySchema = z.object({
 export const exportTransactionsPdf = async (request: FastifyRequest, reply: FastifyReply) => {
   const { userId } = getAuthContext(request);
   const doc = await pdfService.generateTransactionsPdf(userId);
+  await createAuditLog({
+    userId,
+    action: 'EXPORT_TRANSACTIONS_PDF',
+    entityType: 'Export',
+    ...getRequestMetadata(request),
+    metadata: { format: 'pdf', report: 'transactions' },
+  });
 
   reply.header('Content-Type', 'application/pdf');
   reply.header('Content-Disposition', 'attachment; filename="transactions.pdf"');
@@ -22,6 +30,13 @@ export const exportSummaryPdf = async (request: FastifyRequest, reply: FastifyRe
   const { userId } = getAuthContext(request);
   const { month, year } = querySchema.parse(request.query);
   const doc = await pdfService.generateSummaryPdf(userId, month, year);
+  await createAuditLog({
+    userId,
+    action: 'EXPORT_SUMMARY_PDF',
+    entityType: 'Export',
+    ...getRequestMetadata(request),
+    metadata: { format: 'pdf', report: 'summary', month, year },
+  });
 
   reply.header('Content-Type', 'application/pdf');
   reply.header('Content-Disposition', `attachment; filename="summary-${month}-${year}.pdf"`);
