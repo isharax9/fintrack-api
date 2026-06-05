@@ -352,26 +352,27 @@ Requirements:
 - [x] Implement robust TanStack query keys and mutation handlers for remaining entities.
 
 
-### Phase 3: Auth And Settings (In Progress 🔄)
+### Phase 3: Auth And Settings (Completed ✅)
 
-- [ ] Rebuild auth screens with advanced strength meters, loading states, and OTP resend cooldown timers.
+- [x] Rebuild auth screens with advanced strength meters, loading states, and OTP resend cooldown timers.
 - [x] Rebuild settings profile information forms (Name, Currency fields).
-- [ ] Rebuild settings session management (`GET /api/auth/sessions`).
-- [ ] Add "logout other sessions" and "logout all sessions" (`POST /api/auth/logout-all`) buttons in the Settings UI.
-- [ ] Connect the settings Change Password form to the backend API.
+- [x] Rebuild settings session management (`GET /api/auth/sessions`).
+- [x] Add "logout other sessions" and "logout all sessions" (`POST /api/auth/logout-all`) buttons in the Settings UI.
+- [x] Connect the settings Change Password form to the backend API.
 
-### Phase 4: Core Money Workflows (In Progress 🔄)
+
+### Phase 4: Core Money Workflows (Completed ✅)
 
 - [x] **Dashboard**: Fully overhauled layout, charts, recent transactions, spending breakdown, budget progress, upcoming bills, and balance cards to pull dynamic data.
 - [x] **Transactions**: Integrated advanced filters (Search, Date, Category, Type, Account) and server pagination.
 - [x] **Accounts**: Grouped account cards by type (Savings, Checking, Credit Cards), full CRUD forms, transfer money flows, and deletion guards.
 - [x] **Reports**: Dynamic six-month trend area charts and spending breakdown pie charts connected to the API.
-- [ ] **Budgets**: Rebuild and verify Category Budget Planner limit creation, editing, and deletion.
-- [ ] **Savings**: Rebuild the Savings Goals page to connect to backend savings APIs (currently uses hardcoded `DEMO_GOALS`).
-- [ ] **Recurring**: Rebuild the Recurring Transactions page to connect to backend recurring APIs (currently uses hardcoded `DEMO_RECURRING`).
-- [ ] **PDF Exporting**: Wire the download action on the Analytics & Insights page to fetch/generate the PDF report from the API.
+- [x] **Budgets**: Rebuild and verify Category Budget Planner limit creation, editing, and deletion.
+- [x] **Savings**: Rebuild the Savings Goals page to connect to backend savings APIs.
+- [x] **Recurring**: Rebuild the Recurring Transactions page to connect to backend recurring APIs.
+- [x] **PDF Exporting**: Wire the download action on the Analytics & Insights page to fetch/generate the PDF report from the API.
 
-### Phase 5: QA
+### Phase 5: QA (In Progress 🔄)
 
 - [ ] Build and lint.
 - [ ] Responsive visual review at mobile/tablet/desktop.

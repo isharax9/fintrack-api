@@ -111,6 +111,18 @@ export default async function authRoutes(fastify: FastifyInstance) {
     handler: authController.logoutAll,
   });
 
+  fastify.post('/logout-other', {
+    preHandler: [fastify.authenticate],
+    schema: {
+      tags: ['Auth'],
+      summary: 'Logout other sessions',
+      security: [{ bearerAuth: [] }],
+      response: { 200: messageResponse, 401: errorResponse },
+    },
+    handler: authController.logoutOther,
+  });
+
+
   fastify.get('/sessions', {
     preHandler: [fastify.authenticate],
     schema: {

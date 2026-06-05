@@ -35,4 +35,23 @@ export default async function userRoutes(fastify: FastifyInstance) {
     },
     handler: userController.deleteMe,
   });
+
+  fastify.post('/me/change-password', {
+    schema: {
+      tags: ['User'],
+      summary: 'Change current user password',
+      security: bearerAuth,
+      body: {
+        type: 'object',
+        properties: {
+          currentPassword: { type: 'string' },
+          newPassword: { type: 'string', minLength: 8 },
+        },
+        required: ['currentPassword', 'newPassword'],
+      },
+      response: { 200: messageResponse, 400: errorResponse, 401: errorResponse },
+    },
+    handler: userController.changePassword,
+  });
 }
+

@@ -235,6 +235,29 @@ export const logoutAll = async (userId: string, metadata: SessionMetadata = {}) 
   });
 };
 
+export const logoutOther = async (userId: string, currentSessionId: string, metadata: SessionMetadata = {}) => {
+  await prisma.refreshSession.updateMany({
+    where: {
+      userId,
+      id: { not: currentSessionId },
+      revokedAt: null,
+    },
+    data: {
+      revokedAt: new Date(),
+      revokeReason: 'LOGOUT_OTHER',
+    },
+  });
+  await createAuditLog({
+    userId,
+    action: 'AUTH_LOGOUT_OTHER',
+    entityType: 'RefreshSession',
+    ip: metadata.ip,
+    userAgent: metadata.userAgent,
+    requestId: metadata.requestId,
+  });
+};
+
+
 export const listSessions = async (userId: string, currentSessionId?: string) => {
   const sessions = await prisma.refreshSession.findMany({
     where: {

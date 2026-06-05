@@ -40,6 +40,16 @@ export const logoutAll = async (request: FastifyRequest, reply: FastifyReply) =>
   return reply.send({ message: 'All sessions logged out' });
 };
 
+export const logoutOther = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { userId, sessionId } = getAuthContext(request);
+  if (!sessionId) {
+    return reply.code(401).send({ error: { message: 'No active session found' } });
+  }
+  await authService.logoutOther(userId, sessionId, getRequestMetadata(request));
+  return reply.send({ message: 'Other sessions logged out' });
+};
+
+
 export const listSessions = async (request: FastifyRequest, reply: FastifyReply) => {
   const { userId, sessionId } = getAuthContext(request);
   const sessions = await authService.listSessions(userId, sessionId);

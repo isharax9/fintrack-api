@@ -1,6 +1,8 @@
 import { prisma } from '../../config/db';
 import { UpdateUserInput } from './user.schema';
-import { notFound } from '../../utils/errors';
+import { badRequest, notFound } from '../../utils/errors';
+import { hashPassword, comparePassword } from '../../utils/hash';
+
 
 export const getProfile = async (userId: string) => {
   const user = await prisma.user.findUnique({
@@ -39,3 +41,18 @@ export const deleteAccount = async (userId: string) => {
     where: { id: userId }
   });
 };
+
+export const changePassword = async (userId: string, currentPassword: string, newPassword: string) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw notFound('User not found');
+
+  const isValid = await comparePassword(currentPassword, user.password);
+  if (!isValid) throw badRequest('Incorrect current password');
+
+  const hashedPassword = await hashPassword(newPassword);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashedPassword },
+  });
+};
+
