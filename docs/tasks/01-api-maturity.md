@@ -122,21 +122,24 @@ Acceptance criteria:
 Current state:
 
 - Manual API docs exist in `API_DOCS.md`.
-- Fastify routes do not expose formal OpenAPI schemas.
+- Swagger/OpenAPI is registered.
+- Swagger UI is available at `/docs`.
+- OpenAPI JSON is available at `/openapi.json`.
+- Bearer auth security scheme is defined.
+- Auth routes have request/response schemas.
+- Protected route groups are tagged and marked with bearer auth.
 
-Needed:
+Still needed:
 
-- Add OpenAPI generation with `@fastify/swagger` and `@fastify/swagger-ui`.
-- Define request/response schemas per route.
-- Generate or expose `/docs` in non-production environments.
-- Export OpenAPI JSON for frontend type generation.
+- Define full request/response schemas for every route.
+- Generate frontend API types from `/openapi.json`.
 - Keep `API_DOCS.md` as human summary, not the only source of truth.
 
 Acceptance criteria:
 
-- `/docs` or `/documentation` works locally.
-- OpenAPI JSON includes auth, users, accounts, transactions, transfers, categories, tags, budgets, savings, recurring, reports, exports.
-- Frontend can generate API types from the spec.
+- `/docs` works locally.
+- OpenAPI JSON includes route groups for auth, users, accounts, transactions, transfers, categories, tags, budgets, savings, recurring, reports, exports, and audit logs.
+- Frontend can generate API types from the spec after route schemas are expanded.
 
 ## 5. Audit Logs
 

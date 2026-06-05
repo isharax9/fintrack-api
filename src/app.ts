@@ -6,6 +6,7 @@ import { authenticate } from './middleware/authenticate';
 import corsPlugin from './plugins/cors';
 import helmetPlugin from './plugins/helmet';
 import rateLimitPlugin from './plugins/rateLimit';
+import swaggerPlugin from './plugins/swagger';
 
 // Routes
 import authRoutes from './modules/auth/auth.routes';
@@ -49,6 +50,7 @@ export function buildApp() {
   app.register(corsPlugin);
   app.register(helmetPlugin);
   app.register(rateLimitPlugin);
+  app.register(swaggerPlugin);
 
   // Register API Routes
   app.register(authRoutes, { prefix: '/api/auth' });
@@ -70,7 +72,22 @@ export function buildApp() {
   initCronJobs();
 
   // Healthcheck
-  app.get('/health', async () => {
+  app.get('/health', {
+    schema: {
+      tags: ['Health'],
+      summary: 'Health check',
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+            timestamp: { type: 'string', format: 'date-time' },
+          },
+          required: ['status', 'timestamp'],
+        },
+      },
+    },
+  }, async () => {
     return { status: 'ok', timestamp: new Date() };
   });
 

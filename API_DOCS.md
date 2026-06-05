@@ -26,6 +26,11 @@ docker compose up --build
 curl http://localhost:5001/health
 ```
 
+OpenAPI:
+
+- Swagger UI: `http://localhost:5001/docs`
+- OpenAPI JSON: `http://localhost:5001/openapi.json`
+
 ## Environment
 
 See `.env.example`.
@@ -239,8 +244,8 @@ Centralized error shape:
 
 ## Production TODO
 
-- Add OpenAPI generation.
-- Add contract tests against this document.
+- Expand OpenAPI schemas beyond auth into every request/response body.
+- Add contract tests against the OpenAPI document.
 - Expand route-level contract tests for the centralized error response.
 - Add pagination to all list endpoints.
 - Add timezone-aware reporting.
