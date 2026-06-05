@@ -40,6 +40,12 @@ export const logoutAll = async (request: FastifyRequest, reply: FastifyReply) =>
   return reply.send({ message: 'All sessions logged out' });
 };
 
+export const listSessions = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { userId, sessionId } = getAuthContext(request);
+  const sessions = await authService.listSessions(userId, sessionId);
+  return reply.send(sessions);
+};
+
 export const forgotPassword = async (request: FastifyRequest, reply: FastifyReply) => {
   const data = forgotPasswordSchema.parse(request.body);
   await authService.generateOtp(data.email, getRequestMetadata(request));

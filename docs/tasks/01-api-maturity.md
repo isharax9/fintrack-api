@@ -21,6 +21,7 @@ Current state:
 - Refresh tokens rotate on refresh.
 - Frontend currently persists refresh tokens client-side.
 - Password reset OTP flow exists.
+- Users can list active refresh sessions with `GET /api/auth/sessions`.
 
 Done in current pass:
 
@@ -30,11 +31,12 @@ Done in current pass:
 - Support logout current session and logout all sessions.
 - Store only hashed refresh tokens server-side.
 - Revoke active sessions on password reset.
+- Add session listing endpoint for the future settings UI.
+- Add deeper session tests for login session creation, refresh token rotation, refresh token reuse revocation, password reset revocation, and active session listing.
 
 Still needed:
 
-- Add deeper session tests for refresh token reuse, logout, logout-all, and password reset revocation.
-- Add session listing endpoint for the future settings UI.
+- Add route-level auth tests for logout and logout-all with Fastify `inject`.
 - Add httpOnly-cookie refresh delivery when the frontend auth layer is rebuilt.
 - Keep forgot-password responses enumeration-safe.
 - Keep monitoring OTP and auth rate limits.
@@ -90,11 +92,12 @@ Current state:
 
 - Vitest is installed.
 - Basic schema tests exist for recurring, transfers, and transactions.
+- Auth service tests cover session creation, refresh rotation, refresh reuse revocation, password-reset session revocation, and active session listing.
+- Money-flow service tests cover transaction account balance effects and transfer debit/credit behavior.
 
 Needed test layers:
 
 - Unit tests for schemas and pure utilities.
-- Service tests for money-changing workflows.
 - Route tests with Fastify `inject`.
 - Database integration tests against isolated test database.
 

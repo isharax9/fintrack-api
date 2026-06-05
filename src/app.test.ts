@@ -59,6 +59,7 @@ describe('app OpenAPI', () => {
       ['/api/auth/refresh', 'post'],
       ['/api/auth/logout', 'post'],
       ['/api/auth/logout-all', 'post'],
+      ['/api/auth/sessions', 'get'],
       ['/api/auth/forgot-password', 'post'],
       ['/api/auth/verify-otp', 'post'],
       ['/api/auth/reset-password', 'post'],

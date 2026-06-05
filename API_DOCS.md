@@ -95,6 +95,7 @@ Main Prisma models:
 | POST | `/api/auth/refresh` | No | `{ refreshToken }` |
 | POST | `/api/auth/logout` | Yes | none |
 | POST | `/api/auth/logout-all` | Yes | none |
+| GET | `/api/auth/sessions` | Yes | none |
 | POST | `/api/auth/forgot-password` | No | `{ email }` |
 | POST | `/api/auth/verify-otp` | No | `{ email, otp }` |
 | POST | `/api/auth/reset-password` | No | `{ resetToken, newPassword }` |

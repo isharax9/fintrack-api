@@ -16,6 +16,10 @@ export const listTransfers = async (userId: string) => {
 };
 
 export const createTransfer = async (userId: string, data: CreateTransferInput, metadata: RequestMetadata) => {
+  if (data.fromAccountId === data.toAccountId) {
+    throw badRequest('Transfer accounts must be different');
+  }
+
   const accountFrom = await prisma.account.findFirst({ where: { id: data.fromAccountId, userId }});
   const accountTo = await prisma.account.findFirst({ where: { id: data.toAccountId, userId }});
 

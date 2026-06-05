@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { errorResponse, messageResponse } from '../../utils/openapi';
+import { errorResponse, messageResponse, refreshSessionResponse } from '../../utils/openapi';
 import * as authController from './auth.controller';
 
 export default async function authRoutes(fastify: FastifyInstance) {
@@ -109,6 +109,20 @@ export default async function authRoutes(fastify: FastifyInstance) {
       response: { 200: messageResponse, 401: errorResponse },
     },
     handler: authController.logoutAll,
+  });
+
+  fastify.get('/sessions', {
+    preHandler: [fastify.authenticate],
+    schema: {
+      tags: ['Auth'],
+      summary: 'List active refresh sessions',
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: { type: 'array', items: refreshSessionResponse },
+        401: errorResponse,
+      },
+    },
+    handler: authController.listSessions,
   });
 
   fastify.post('/forgot-password', {

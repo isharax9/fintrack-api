@@ -235,6 +235,30 @@ export const logoutAll = async (userId: string, metadata: SessionMetadata = {}) 
   });
 };
 
+export const listSessions = async (userId: string, currentSessionId?: string) => {
+  const sessions = await prisma.refreshSession.findMany({
+    where: {
+      userId,
+      revokedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { lastUsedAt: 'desc' },
+    select: {
+      id: true,
+      userAgentHash: true,
+      ipHash: true,
+      expiresAt: true,
+      lastUsedAt: true,
+      createdAt: true,
+    },
+  });
+
+  return sessions.map((session) => ({
+    ...session,
+    current: session.id === currentSessionId,
+  }));
+};
+
 export const generateOtp = async (email: string, metadata: SessionMetadata = {}) => {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
