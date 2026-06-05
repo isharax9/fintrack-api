@@ -42,6 +42,13 @@ Required services:
 - Redis via `REDIS_URL` for OTPs and rate limiting.
 - SMTP credentials for password reset OTP emails.
 
+Deployment/runtime notes:
+
+- See `DEPLOYMENT.md` for production startup and rollback guidance.
+- `NODE_ENV=production` enables fail-fast environment validation.
+- `ENABLE_CRON=true` should be enabled for exactly one running API worker.
+- `TRUST_PROXY=true` should only be used behind a trusted proxy/load balancer.
+
 ## Auth Model
 
 Current implementation:
@@ -245,12 +252,10 @@ Centralized error shape:
 }
 ```
 
-## Production TODO
+## Product TODO
 
-- Expand OpenAPI schemas beyond auth into every request/response body.
-- Add contract tests against the OpenAPI document.
-- Expand route-level contract tests for the centralized error response.
-- Add pagination to all list endpoints.
+- Expand route-level contract tests for centralized error responses.
+- Add pagination to remaining list endpoints.
 - Add timezone-aware reporting.
 - Add httpOnly-cookie refresh delivery when the frontend auth layer is rebuilt.
 - Add richer recurring transaction operations such as skip next run and run now.

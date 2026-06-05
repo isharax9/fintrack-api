@@ -27,6 +27,7 @@ import { errorHandler, notFound } from './utils/errors';
 import { healthResponse, readinessResponse } from './utils/openapi';
 import { prisma } from './config/db';
 import { redis } from './config/redis';
+import { env } from './config/env';
 
 import { initCronJobs } from './modules/cron/scheduler';
 
@@ -106,11 +107,12 @@ async function healthRoutes(fastify: FastifyInstance) {
 export function buildApp() {
   const app = Fastify({
     logger: {
-      level: process.env.LOG_LEVEL ?? 'info',
+      level: env.LOG_LEVEL,
       redact: ['req.headers.authorization', 'req.headers.cookie', 'password', '*.password', 'refreshToken', '*.refreshToken'],
     },
     requestIdHeader: 'x-request-id',
     requestIdLogLabel: 'requestId',
+    trustProxy: env.TRUST_PROXY,
   }).withTypeProvider<TypeBoxTypeProvider>();
 
   app.setErrorHandler(errorHandler);
@@ -144,8 +146,18 @@ export function buildApp() {
   app.register(recurringRoutes, { prefix: '/api/recurring' });
   app.register(auditRoutes, { prefix: '/api/audit' });
 
-  // Initialize background tasks
-  initCronJobs();
+  const cronTasks = env.ENABLE_CRON ? initCronJobs() : [];
+  if (env.ENABLE_CRON) {
+    app.log.info({ count: cronTasks.length }, 'Cron jobs initialized');
+  }
+
+  app.addHook('onClose', async () => {
+    await Promise.allSettled(cronTasks.map((task) => task.stop()));
+    await prisma.$disconnect();
+    if (redis) {
+      await redis.quit();
+    }
+  });
 
   return app;
 }

@@ -19,8 +19,8 @@ export default fp(async (fastify) => {
 
   fastify.register(cors, {
     origin: (origin, cb) => {
-      // Allow server-to-server calls and local browser origins.
-      if (!origin || allowedOrigins.has(origin) || isLocalOrigin(origin)) {
+      // Allow server-to-server calls. In production, only allow configured frontend origins.
+      if (!origin || allowedOrigins.has(origin) || (env.NODE_ENV !== 'production' && isLocalOrigin(origin))) {
         cb(null, true);
         return;
       }

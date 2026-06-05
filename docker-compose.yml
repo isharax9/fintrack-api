@@ -34,6 +34,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: fintrack_api
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
@@ -44,6 +45,10 @@ services:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}?schema=public
       - REDIS_URL=redis://redis:6379
+      - NODE_ENV=${NODE_ENV:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - TRUST_PROXY=${TRUST_PROXY:-false}
+      - ENABLE_CRON=${ENABLE_CRON:-true}
       - ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET:?Set ACCESS_TOKEN_SECRET in .env}
       - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET:?Set REFRESH_TOKEN_SECRET in .env}
       - ACCESS_TOKEN_EXPIRES_IN=${ACCESS_TOKEN_EXPIRES_IN:-15m}
@@ -58,7 +63,13 @@ services:
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
       - PORT=${PORT:-5001}
     # Apply committed migrations before starting the API.
-    command: sh -c "npx prisma migrate deploy && npx prisma db seed && npm run start"
+    command: sh -c "npx prisma migrate deploy && npm run start"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"const http=require('http'); const port=process.env.PORT || 5001; const req=http.request({host:'127.0.0.1',port,path:'/health',timeout:4000},res=>process.exit(res.statusCode===200?0:1)); req.on('error',()=>process.exit(1)); req.on('timeout',()=>{req.destroy();process.exit(1)}); req.end();\""]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
     volumes:
       - ./prisma:/app/prisma
 

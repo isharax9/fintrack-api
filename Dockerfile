@@ -5,11 +5,11 @@ WORKDIR /app
 # Install dependencies needed for Prisma
 RUN apk add --no-cache openssl
 
-# Copy package and lock files (if available)
-COPY package.json package-lock.json* bun.lockb* ./
+# Copy package and lock files
+COPY package.json package-lock.json ./
 
-# Install all dependencies (development + production)
-RUN npm install
+# Install all dependencies for build
+RUN npm ci
 
 # Copy source code and prisma schema
 COPY . .
@@ -26,14 +26,22 @@ FROM node:20-alpine
 WORKDIR /app
 RUN apk add --no-cache openssl
 
-COPY --from=builder /app/package.json ./
+ENV NODE_ENV=production
+
+COPY package.json package-lock.json ./
 # Only install production dependencies
-RUN npm install --omit=dev
+RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/dist ./dist
 
-# Start command
-# We use a custom startup script in docker-compose, but provide a default here
+USER node
+
+EXPOSE 5001
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "const http=require('http'); const port=process.env.PORT || 5001; const req=http.request({host:'127.0.0.1',port,path:'/health',timeout:4000},res=>process.exit(res.statusCode===200?0:1)); req.on('error',()=>process.exit(1)); req.on('timeout',()=>{req.destroy();process.exit(1)}); req.end();"
+
 CMD ["npm", "run", "start"]

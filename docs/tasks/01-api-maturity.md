@@ -240,6 +240,26 @@ Current state:
 - Docker Compose reads secrets from environment variables instead of shipping built-in token/SMTP/database secrets.
 - `SECURITY.md` documents current gates, secret handling, dependency policy, and remaining security work.
 
+## 8. Production Deployment And Runtime
+
+Current state:
+
+- Dockerfile uses deterministic `npm ci` installs, production-only runtime dependencies, non-root `node` user, `EXPOSE`, and container healthcheck.
+- Docker Compose applies committed migrations before API startup and no longer seeds on every boot.
+- Docker Compose includes API healthcheck and restart policy.
+- Server handles `SIGTERM` and `SIGINT` gracefully.
+- Fastify shutdown stops cron tasks, disconnects Prisma, and closes Redis.
+- Cron jobs are controlled by `ENABLE_CRON` and should be enabled for exactly one worker.
+- `TRUST_PROXY` controls proxy-aware request handling.
+- Production environment validation fails fast when required variables are missing.
+- `DEPLOYMENT.md` documents startup, readiness, cron, shutdown, and rollback guidance.
+
+Still needed after Task 01:
+
+- Add platform-specific deployment manifests once the hosting target is chosen.
+- Add secret scanning in the repository host.
+- Add isolated database integration tests.
+
 ## Deliverables
 
 - Updated Prisma migrations.
@@ -250,15 +270,14 @@ Current state:
 - Centralized error handling.
 - Updated Docker startup.
 - Updated `API_DOCS.md`.
+- Deployment runbook.
 
 ## Verification
 
 Run:
 
 ```bash
-npx prisma validate
-npm run build
-npm test
+npm run ci:verify
 ```
 
 After migration changes:
@@ -267,6 +286,7 @@ After migration changes:
 docker compose down -v
 docker compose up --build
 curl http://localhost:5001/health
+curl http://localhost:5001/ready
 ```
 
 ## Out Of Scope

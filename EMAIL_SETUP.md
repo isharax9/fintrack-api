@@ -8,7 +8,7 @@ Current implementation uses Nodemailer with SMTP settings from environment varia
 SMTP_HOST=smtp.resend.com
 SMTP_PORT=587
 SMTP_USER=resend
-SMTP_PASS=re_your_api_key_here
+SMTP_PASS=replace-with-provider-api-key
 EMAIL_FROM=FinTrack <noreply@yourdomain.com>
 ```
 

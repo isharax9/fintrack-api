@@ -1,4 +1,4 @@
-import cron from 'node-cron';
+import cron, { ScheduledTask } from 'node-cron';
 import { prisma } from '../../config/db';
 import { addDays, addWeeks, addMonths, addYears, format, startOfMonth, endOfMonth } from 'date-fns';
 import { createAuditLog } from '../audit/audit.service';
@@ -19,9 +19,11 @@ const logCron = (level: 'info' | 'error', message: string, data: Record<string, 
   }
 };
 
-export function initCronJobs() {
+export function initCronJobs(): ScheduledTask[] {
+  const tasks: ScheduledTask[] = [];
+
   // 1. Process Recurring Transactions (Runs everyday at exactly midnight)
-  cron.schedule('0 0 * * *', async () => {
+  const recurringTask = cron.schedule('0 0 * * *', async () => {
     logCron('info', 'Processing recurring transactions');
     const now = new Date();
     
@@ -94,10 +96,11 @@ export function initCronJobs() {
         error: e instanceof Error ? e.message : 'Unknown error',
       });
     }
-  });
+  }, { name: 'process-recurring-transactions', noOverlap: true });
+  tasks.push(recurringTask);
 
   // 2. End-of-month rollover to Savings Bucket (Runs at 23:59 on the last day of every month)
-  cron.schedule('59 23 28-31 * *', async () => {
+  const rolloverTask = cron.schedule('59 23 28-31 * *', async () => {
     // Determine if today is the last day of the month
     const today = new Date();
     const isEOM = today.getDate() === endOfMonth(today).getDate();
@@ -168,5 +171,8 @@ export function initCronJobs() {
         error: e instanceof Error ? e.message : 'Unknown error',
       });
     }
-  });
+  }, { name: 'end-of-month-savings-rollover', noOverlap: true });
+  tasks.push(rolloverTask);
+
+  return tasks;
 }

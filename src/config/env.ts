@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   DATABASE_URL: z.string().url(),
   REDIS_URL: z.string().url(),
   ACCESS_TOKEN_SECRET: z.string().min(1),
@@ -15,6 +16,9 @@ const envSchema = z.object({
   EMAIL_FROM: z.string().default('FinTrack <noreply@fintrack.dev>'),
   APP_NAME: z.string().default('FinTrack'),
   FRONTEND_URL: z.string().url().default('http://localhost:3000'),
+  LOG_LEVEL: z.string().default('info'),
+  TRUST_PROXY: z.coerce.boolean().default(false),
+  ENABLE_CRON: z.coerce.boolean().default(false),
   PORT: z.coerce.number().default(5000),
 });
 
@@ -28,6 +32,9 @@ try {
   console.error("Environment Variable Validation Error:");
   if (error instanceof z.ZodError) {
     console.error(error.errors);
+  }
+  if (process.env.NODE_ENV === 'production') {
+    process.exit(1);
   }
   // Allow continuing without crash since Fastify/env plugin will also validate
   envVars = process.env as any;
