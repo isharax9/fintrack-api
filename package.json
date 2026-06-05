@@ -34,9 +34,9 @@
     "ioredis": "^5.3.2",
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^4.2.1",
-    "nodemailer": "^8.0.10",
     "pdfkit": "^0.15.0",
     "pdfkit-table": "^0.1.99",
+    "resend": "^6.12.4",
     "tsx": "^4.7.2",
     "typescript": "^5.4.5",
     "zod": "^3.22.4"
@@ -44,7 +44,6 @@
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.6",
-    "@types/nodemailer": "^8.0.0",
     "@types/pdfkit": "^0.13.4",
     "prisma": "^5.22.0",
     "vitest": "^4.1.8"

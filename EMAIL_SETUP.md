@@ -1,45 +1,31 @@
 # Email Setup
 
-FinTrack sends transactional email for password reset OTPs.
+FinTrack sends transactional email for password reset OTPs using the Resend API.
 
-Current implementation uses Nodemailer with SMTP settings from environment variables:
+## Environment
 
 ```env
-SMTP_HOST=smtp.resend.com
-SMTP_PORT=587
-SMTP_USER=resend
-SMTP_PASS=replace-with-provider-api-key
+RESEND_API_KEY=re_replace_with_resend_api_key
 EMAIL_FROM=FinTrack <noreply@yourdomain.com>
 ```
 
-## Recommended Provider
+## Resend Setup
 
-Use Resend, Postmark, SendGrid, or Amazon SES for production. Avoid Gmail for production because it is fragile for app email and has account-level sending limits.
+1. Create a Resend API key.
+2. Verify your sending domain in Resend.
+3. Configure SPF, DKIM, and DMARC for that domain.
+4. Set `EMAIL_FROM` to a sender on the verified domain, such as `FinTrack <noreply@yourdomain.com>`.
+5. Store `RESEND_API_KEY` in the deployment secret manager, not source control.
 
-## Local Development
-
-Use Ethereal for local testing:
-
-```env
-SMTP_HOST=smtp.ethereal.email
-SMTP_PORT=587
-SMTP_USER=your_ethereal_user
-SMTP_PASS=your_ethereal_password
-EMAIL_FROM=FinTrack <your_ethereal_user>
-```
-
-When Ethereal is used, Nodemailer can expose a preview URL in the API logs.
+For early development, Resend allows the test sender `onboarding@resend.dev`, but production should use a verified domain.
 
 ## Production Requirements
 
-- Verify the sending domain.
-- Configure SPF, DKIM, and DMARC.
-- Use a real product sender such as `FinTrack <noreply@yourdomain.com>`.
-- Store SMTP credentials in the deployment secret manager, not source control.
-- Add email delivery monitoring.
+- Add email delivery monitoring in the Resend dashboard or webhooks.
 - Add rate limits for OTP requests.
 - Do not disclose whether an email is registered.
 - Use cryptographically secure OTP generation.
+- Avoid logging OTP values.
 
 ## Test Flow
 
@@ -49,13 +35,13 @@ curl -X POST http://localhost:5001/api/auth/forgot-password \
   -d '{"email":"test@example.com"}'
 ```
 
-Then check the provider inbox, provider dashboard, or Ethereal preview URL.
+Then check the recipient inbox or the Resend dashboard.
 
 ## Troubleshooting
 
 | Symptom | Likely Fix |
 | --- | --- |
-| `ECONNREFUSED` | Check SMTP host and port. |
-| `Invalid login` | Check SMTP username and password. |
-| Email sent but not received | Check spam, sender domain verification, and provider logs. |
-| TLS/certificate errors | Fix provider TLS settings; only bypass TLS in local throwaway environments. |
+| `Invalid API key` | Check `RESEND_API_KEY`. |
+| Sender rejected | Verify the sender domain and `EMAIL_FROM`. |
+| Email sent but not received | Check spam, domain DNS records, and Resend delivery logs. |
+| Only test recipients work | Use a verified production domain instead of the test sender. |

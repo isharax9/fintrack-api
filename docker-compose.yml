@@ -54,10 +54,7 @@ services:
       - ACCESS_TOKEN_EXPIRES_IN=${ACCESS_TOKEN_EXPIRES_IN:-15m}
       - REFRESH_TOKEN_EXPIRES_IN=${REFRESH_TOKEN_EXPIRES_IN:-7d}
       - BCRYPT_SALT_ROUNDS=${BCRYPT_SALT_ROUNDS:-12}
-      - SMTP_HOST=${SMTP_HOST:?Set SMTP_HOST in .env}
-      - SMTP_PORT=${SMTP_PORT:-587}
-      - SMTP_USER=${SMTP_USER:?Set SMTP_USER in .env}
-      - SMTP_PASS=${SMTP_PASS:?Set SMTP_PASS in .env}
+      - RESEND_API_KEY=${RESEND_API_KEY:?Set RESEND_API_KEY in .env}
       - EMAIL_FROM=${EMAIL_FROM:-FinTrack <noreply@fintrack.dev>}
       - APP_NAME=${APP_NAME:-FinTrack}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}

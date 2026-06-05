@@ -1,22 +1,14 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { env } from '../config/env';
 
-const transporter = nodemailer.createTransport({
-  host: env.SMTP_HOST,
-  port: env.SMTP_PORT,
-  secure: env.SMTP_PORT === 465, // true for 465, false for other ports
-  auth: {
-    user: env.SMTP_USER,
-    pass: env.SMTP_PASS,
-  },
-});
+const resend = new Resend(env.RESEND_API_KEY);
 
 export const sendOTP = async (email: string, otp: string) => {
   try {
-    const info = await transporter.sendMail({
+    const { data, error } = await resend.emails.send({
       from: env.EMAIL_FROM,
-      to: email,
-      subject: "Reset your password OTP",
+      to: [email],
+      subject: 'Reset your password OTP',
       text: `Your OTP for resetting the password is: ${otp}. It is valid for 10 minutes.`,
       html: `
         <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #111; color: #fff; border-radius: 12px;">
@@ -31,15 +23,12 @@ export const sendOTP = async (email: string, otp: string) => {
       `,
     });
 
-    console.log(`OTP email sent to ${email} — messageId: ${info.messageId}`);
-
-    // If using Ethereal, log the preview URL
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-      console.log(`Preview URL: ${previewUrl}`);
+    if (error) {
+      throw new Error(error.message);
     }
 
-    return info;
+    console.log(`OTP email sent via Resend — messageId: ${data?.id}`);
+    return data;
   } catch (error) {
     console.error(`Failed to send OTP email to ${email}:`, error);
     throw error;

@@ -39,9 +39,8 @@ Use `.env.example` as the variable checklist. Production must set:
 - `REDIS_URL`
 - `ACCESS_TOKEN_SECRET`
 - `REFRESH_TOKEN_SECRET`
-- `SMTP_HOST`
-- `SMTP_USER`
-- `SMTP_PASS`
+- `RESEND_API_KEY`
+- `EMAIL_FROM`
 - `FRONTEND_URL`
 
 Set `TRUST_PROXY=true` only when the API is behind a trusted load balancer or platform proxy.

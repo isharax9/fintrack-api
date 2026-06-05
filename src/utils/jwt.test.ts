@@ -8,9 +8,7 @@ describe('jwt utilities', () => {
     process.env.REFRESH_TOKEN_EXPIRES_IN = '7d';
     process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/test';
     process.env.REDIS_URL = 'redis://localhost:6379';
-    process.env.SMTP_HOST = 'smtp.example.com';
-    process.env.SMTP_USER = 'test';
-    process.env.SMTP_PASS = 'test';
+    process.env.RESEND_API_KEY = 're_test_key';
 
     const { signAccessToken, verifyAccessToken } = await import('./jwt');
 

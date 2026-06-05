@@ -40,7 +40,7 @@ Required services:
 
 - PostgreSQL via `DATABASE_URL`.
 - Redis via `REDIS_URL` for OTPs and rate limiting.
-- SMTP credentials for password reset OTP emails.
+- Resend API credentials for password reset OTP emails.
 
 Deployment/runtime notes:
 

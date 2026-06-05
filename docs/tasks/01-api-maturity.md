@@ -236,8 +236,8 @@ Acceptance criteria:
 Current state:
 
 - CI workflow runs Prisma generation/validation, TypeScript build, tests, and high-severity dependency audit.
-- Fastify, Fastify plugins, Nodemailer, and node-cron were upgraded to clear known high-severity audit findings.
-- Docker Compose reads secrets from environment variables instead of shipping built-in token/SMTP/database secrets.
+- Fastify, Fastify plugins, and node-cron were upgraded to clear known high-severity audit findings.
+- Docker Compose reads secrets from environment variables instead of shipping built-in token/email/database secrets.
 - `SECURITY.md` documents current gates, secret handling, dependency policy, and remaining security work.
 
 ## 8. Production Deployment And Runtime
