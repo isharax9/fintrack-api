@@ -120,10 +120,8 @@ export const categoryResponse = {
     color: { type: 'string' },
     icon: { type: 'string' },
     isDefault: { type: 'boolean' },
-    createdAt: dateTime,
-    updatedAt: dateTime,
   },
-  required: ['id', 'userId', 'name', 'color', 'icon', 'isDefault', 'createdAt', 'updatedAt'],
+  required: ['id', 'userId', 'name', 'color', 'icon', 'isDefault'],
 };
 
 export const tagResponse = {

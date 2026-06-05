@@ -374,7 +374,7 @@ Requirements:
 
 ### Phase 5: QA (In Progress 🔄)
 
-- [ ] Build and lint.
+- [x] Build and lint.
 - [ ] Responsive visual review at mobile/tablet/desktop.
 - [ ] Keyboard navigation checks for dialogs/forms.
 - [ ] Playwright smoke tests for auth, dashboard, transaction CRUD, budget CRUD, and settings.
