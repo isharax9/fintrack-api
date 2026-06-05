@@ -336,44 +336,47 @@ Requirements:
 
 ## Implementation Phases
 
-### Phase 1: Foundation
+### Phase 1: Foundation (Completed ✅)
 
-- Remove old root header.
-- Create CSS token system.
-- Create `AppShell`, `Sidebar`, `Topbar`.
-- Create primitive component library.
-- Add typed icon helpers.
-- Fix lint errors introduced by old MVP.
+- [x] Remove old root header.
+- [x] Create CSS token system (using Tailwind CSS 4 in `src/app/globals.css`).
+- [x] Create AppShell, Sidebar, and Topbar navigation layouts.
+- [x] Create primitive component library (`Button`, `IconButton`, `Badge`, `Panel`, `PageHeader`, `ProgressBar`, `EmptyState`, `LoadingSpinner`).
+- [x] Add typed icon helpers (`src/lib/categoryIcons.ts` mapping database categories to Lucide icons).
+- [x] Fix lint errors introduced by old MVP.
 
-### Phase 2: API Client And Types
+### Phase 2: API Client And Types (Completed ✅)
 
-- Generate or derive API types from `/openapi.json`.
-- Replace stale manual types.
-- Normalize API error handling.
-- Add query keys and mutation helpers.
+- [x] Generate or derive API types from `/openapi.json` contract to replace manual stale types in `src/types/index.ts`.
+- [x] Normalize API error handling in Axios intercepts and global error states.
+- [x] Implement robust TanStack query keys and mutation handlers for remaining entities.
 
-### Phase 3: Auth And Settings
 
-- Rebuild auth screens.
-- Rebuild settings profile/session management.
-- Add logout-all UI.
+### Phase 3: Auth And Settings (In Progress 🔄)
 
-### Phase 4: Core Money Workflows
+- [ ] Rebuild auth screens with advanced strength meters, loading states, and OTP resend cooldown timers.
+- [x] Rebuild settings profile information forms (Name, Currency fields).
+- [ ] Rebuild settings session management (`GET /api/auth/sessions`).
+- [ ] Add "logout other sessions" and "logout all sessions" (`POST /api/auth/logout-all`) buttons in the Settings UI.
+- [ ] Connect the settings Change Password form to the backend API.
 
-- Dashboard.
-- Transactions.
-- Accounts and transfers.
-- Budgets.
-- Savings.
-- Recurring.
-- Reports.
+### Phase 4: Core Money Workflows (In Progress 🔄)
+
+- [x] **Dashboard**: Fully overhauled layout, charts, recent transactions, spending breakdown, budget progress, upcoming bills, and balance cards to pull dynamic data.
+- [x] **Transactions**: Integrated advanced filters (Search, Date, Category, Type, Account) and server pagination.
+- [x] **Accounts**: Grouped account cards by type (Savings, Checking, Credit Cards), full CRUD forms, transfer money flows, and deletion guards.
+- [x] **Reports**: Dynamic six-month trend area charts and spending breakdown pie charts connected to the API.
+- [ ] **Budgets**: Rebuild and verify Category Budget Planner limit creation, editing, and deletion.
+- [ ] **Savings**: Rebuild the Savings Goals page to connect to backend savings APIs (currently uses hardcoded `DEMO_GOALS`).
+- [ ] **Recurring**: Rebuild the Recurring Transactions page to connect to backend recurring APIs (currently uses hardcoded `DEMO_RECURRING`).
+- [ ] **PDF Exporting**: Wire the download action on the Analytics & Insights page to fetch/generate the PDF report from the API.
 
 ### Phase 5: QA
 
-- Build and lint.
-- Responsive visual review at mobile/tablet/desktop.
-- Keyboard navigation checks for dialogs/forms.
-- Playwright smoke tests for auth, dashboard, transaction CRUD, budget CRUD, and settings.
+- [ ] Build and lint.
+- [ ] Responsive visual review at mobile/tablet/desktop.
+- [ ] Keyboard navigation checks for dialogs/forms.
+- [ ] Playwright smoke tests for auth, dashboard, transaction CRUD, budget CRUD, and settings.
 
 ## Acceptance Criteria
 
