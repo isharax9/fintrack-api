@@ -1,6 +1,6 @@
 # FinTrack Production Roadmap Tasks
 
-Last updated: 2026-06-05
+Last updated: 2026-06-11
 
 This folder breaks the production rebuild into eight executable task tracks. Each task has its own acceptance criteria, implementation checklist, verification plan, and dependencies.
 
@@ -23,5 +23,4 @@ This folder breaks the production rebuild into eight executable task tracks. Eac
 
 ## Current Focus
 
-Start with Task 01: API Maturity. Do not rebuild the frontend until the backend contract, auth, migrations, tests, and auditability are stable enough to support the new UI.
-
+Task 01 is complete for backend readiness. Move to Task 02: Frontend Design System, using `/openapi.json` as the API contract source of truth.

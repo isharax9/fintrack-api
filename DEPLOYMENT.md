@@ -22,6 +22,8 @@ Deploy database migrations:
 npx prisma migrate deploy
 ```
 
+Migration workflow details and fresh-database verification steps live in [MIGRATIONS.md](./MIGRATIONS.md).
+
 Start the API:
 
 ```bash

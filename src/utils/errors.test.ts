@@ -29,4 +29,26 @@ describe('error formatting', () => {
     expect(result.body.error.code).toBe('VALIDATION_ERROR');
     expect(result.body.requestId).toBe('req-2');
   });
+
+  it('formats fastify validation errors consistently', () => {
+    const result = formatErrorResponse(
+      {
+        validation: [{ instancePath: '/amount', message: 'must be number' }],
+        validationContext: 'body',
+      },
+      'req-3',
+    );
+
+    expect(result).toEqual({
+      statusCode: 400,
+      body: {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request body',
+          details: [{ instancePath: '/amount', message: 'must be number' }],
+        },
+        requestId: 'req-3',
+      },
+    });
+  });
 });

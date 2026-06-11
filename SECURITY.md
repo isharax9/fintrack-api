@@ -9,6 +9,7 @@ CI runs the production-readiness checks for every pull request:
 - `npx prisma validate`
 - `npm run build`
 - `npm test`
+- `RUN_DB_INTEGRATION=1 npm run test:integration`
 - `npm audit --audit-level=high`
 
 The dependency audit must stay at zero high-or-critical vulnerabilities unless a temporary exception is documented in this file with an owner and removal date.
@@ -19,7 +20,7 @@ The dependency audit must stay at zero high-or-critical vulnerabilities unless a
 - Use `.env.example` only for variable names and obvious placeholders.
 - Docker Compose reads credentials from `.env` and fails fast when required values are missing.
 - Access-token and refresh-token secrets must be different high-entropy values.
-- SMTP credentials must come from the environment or deployment secret store.
+- Resend API credentials must come from the environment or deployment secret store.
 
 ## Dependency Policy
 
@@ -32,5 +33,3 @@ The dependency audit must stay at zero high-or-critical vulnerabilities unless a
 - Move refresh tokens to httpOnly cookies or a backend-for-frontend session model when the new frontend is built.
 - Add secret scanning in the repository host.
 - Add dependency update automation.
-- Add isolated database integration tests for money-moving workflows.
-- Add route-level tests for authorization failures and centralized error responses.

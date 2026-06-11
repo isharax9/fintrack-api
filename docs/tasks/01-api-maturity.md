@@ -4,6 +4,8 @@ Goal: raise the API from MVP-grade to production-ready foundation.
 
 Target maturity: 8/10
 
+Status: complete on 2026-06-11 for backend readiness. Remaining auth cookie/session changes move with the frontend auth rebuild.
+
 ## Scope
 
 This task focuses on backend correctness, security, reliability, and contract stability. It prepares the API for a complete frontend rebuild and for real financial workflows.
@@ -34,12 +36,10 @@ Done in current pass:
 - Add session listing endpoint for the future settings UI.
 - Add deeper session tests for login session creation, refresh token rotation, refresh token reuse revocation, password reset revocation, and active session listing.
 
-Still needed:
+Frontend-dependent follow-up:
 
-- Add route-level auth tests for logout and logout-all with Fastify `inject`.
 - Add httpOnly-cookie refresh delivery when the frontend auth layer is rebuilt.
-- Keep forgot-password responses enumeration-safe.
-- Keep monitoring OTP and auth rate limits.
+- Keep monitoring OTP and auth rate limits in production.
 
 Acceptance criteria:
 
@@ -59,12 +59,8 @@ Current state:
 - A first migration was added for recurring `isActive` and `BIWEEKLY`.
 - Baseline migration exists.
 - Docker uses `prisma migrate deploy`.
-
-Still needed:
-
-- Validate fresh database startup from migrations.
-- Add migration documentation.
-- Validate migrations in CI.
+- CI provisions PostgreSQL and runs `prisma migrate deploy` before the main verification step.
+- `MIGRATIONS.md` documents the local, CI, and production migration workflow.
 
 Schema constraints to add:
 
@@ -94,12 +90,8 @@ Current state:
 - Basic schema tests exist for recurring, transfers, and transactions.
 - Auth service tests cover session creation, refresh rotation, refresh reuse revocation, password-reset session revocation, and active session listing.
 - Money-flow service tests cover transaction account balance effects and transfer debit/credit behavior.
-
-Needed test layers:
-
-- Unit tests for schemas and pure utilities.
-- Route tests with Fastify `inject`.
-- Database integration tests against isolated test database.
+- Route tests cover auth logout flows plus representative unauthorized, validation, and not-found error responses.
+- Isolated PostgreSQL-backed integration tests cover transaction balance updates, transfers, savings allocation, and budget duplicate constraints.
 
 Critical test cases:
 
@@ -134,10 +126,10 @@ Current state:
 - Protected route groups are tagged and marked with bearer auth.
 - Contract tests assert every public route appears in `/openapi.json`.
 
-Still needed:
+Next task follow-up:
 
 - Generate frontend API types from `/openapi.json`.
-- Keep `API_DOCS.md` as human summary, not the only source of truth.
+- Keep `API_DOCS.md` as a human summary while `/openapi.json` remains the source of truth.
 
 Acceptance criteria:
 
@@ -154,10 +146,9 @@ Current state:
 - Auth, accounts, transactions, transfers, budget goals, categories, tags, recurring transactions, exports, cron recurring execution, cron savings rollover, and savings allocation write audit logs.
 - Request ID, IP, and user-agent metadata are propagated into audited service calls for key money/security actions.
 
-Still needed:
+Operational follow-up:
 
-- Add audit tests around money-changing service transactions.
-- Add admin/internal retention policy.
+- Add admin/internal retention policy once the deployment target and retention requirements are finalized.
 
 Actions to audit:
 
@@ -192,10 +183,6 @@ Current state:
 - Fastify logging uses request IDs, configurable `LOG_LEVEL`, and redacts authorization/cookie/token/password fields.
 - `/health` is a dependency-free liveness endpoint.
 - `/ready` checks PostgreSQL and Redis readiness and returns dependency status, latency, request ID, and `503` when required dependencies are unavailable.
-
-Still needed:
-
-- Route-level tests for representative centralized error responses.
 
 Target error shape:
 
@@ -236,6 +223,7 @@ Acceptance criteria:
 Current state:
 
 - CI workflow runs Prisma generation/validation, TypeScript build, tests, and high-severity dependency audit.
+- CI verification now also runs isolated PostgreSQL-backed integration tests after applying committed migrations.
 - Fastify, Fastify plugins, and node-cron were upgraded to clear known high-severity audit findings.
 - Docker Compose reads secrets from environment variables instead of shipping built-in token/email/database secrets.
 - `SECURITY.md` documents current gates, secret handling, dependency policy, and remaining security work.
@@ -258,7 +246,6 @@ Still needed after Task 01:
 
 - Add platform-specific deployment manifests once the hosting target is chosen.
 - Add secret scanning in the repository host.
-- Add isolated database integration tests.
 
 ## Deliverables
 

@@ -11,6 +11,29 @@ jobs:
   verify:
     name: Build, Test, Audit
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: fintrack_user
+          POSTGRES_PASSWORD: fintrack_password
+          POSTGRES_DB: fintrack_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fintrack_user -d fintrack_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       DATABASE_URL: postgresql://fintrack_user:fintrack_password@localhost:5432/fintrack_test?schema=public
       REDIS_URL: redis://localhost:6379
@@ -19,10 +42,7 @@ jobs:
       ACCESS_TOKEN_EXPIRES_IN: 15m
       REFRESH_TOKEN_EXPIRES_IN: 7d
       BCRYPT_SALT_ROUNDS: 4
-      SMTP_HOST: smtp.example.com
-      SMTP_PORT: 587
-      SMTP_USER: ci
-      SMTP_PASS: ci
+      RESEND_API_KEY: re_ci_placeholder_key
       EMAIL_FROM: FinTrack <ci@fintrack.dev>
       APP_NAME: FinTrack
       FRONTEND_URL: http://localhost:3000
@@ -40,6 +60,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Apply Prisma migrations to a fresh database
+        run: npx prisma migrate deploy
 
       - name: Verify API
         run: npm run ci:verify

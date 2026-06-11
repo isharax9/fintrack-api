@@ -254,7 +254,7 @@ Centralized error shape:
 
 ## Product TODO
 
-- Expand route-level contract tests for centralized error responses.
+- Generate frontend API types from `/openapi.json`.
 - Add pagination to remaining list endpoints.
 - Add timezone-aware reporting.
 - Add httpOnly-cookie refresh delivery when the frontend auth layer is rebuilt.

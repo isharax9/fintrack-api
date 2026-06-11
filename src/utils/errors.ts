@@ -27,6 +27,13 @@ export const notFound = (message = 'Not found') =>
 export const conflict = (message: string, details?: unknown) =>
   new AppError(409, 'CONFLICT', message, details);
 
+const isFastifyValidationError = (
+  error: unknown,
+): error is FastifyError & { validation: unknown; validationContext?: string } =>
+  typeof error === 'object' &&
+  error !== null &&
+  'validation' in error;
+
 export const formatErrorResponse = (error: unknown, requestId?: string) => {
   if (error instanceof AppError) {
     return {
@@ -50,6 +57,21 @@ export const formatErrorResponse = (error: unknown, requestId?: string) => {
           code: 'VALIDATION_ERROR',
           message: 'Invalid request data',
           details: error.errors,
+        },
+        requestId,
+      },
+    };
+  }
+
+  if (isFastifyValidationError(error)) {
+    const context = error.validationContext ? ` ${error.validationContext}` : '';
+    return {
+      statusCode: 400,
+      body: {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: `Invalid request${context}`,
+          details: error.validation,
         },
         requestId,
       },
