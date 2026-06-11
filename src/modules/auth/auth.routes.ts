@@ -1,11 +1,9 @@
 import { FastifyInstance } from 'fastify';
 import { errorResponse, messageResponse, refreshSessionResponse } from '../../utils/openapi';
 import * as authController from './auth.controller';
+import { forgotPasswordRateLimit, loginRateLimit } from './authRateLimit';
 
 export default async function authRoutes(fastify: FastifyInstance) {
-  // specific auth rate limit: 5 req / 15min
-  const authRateLimit = { max: 5, timeWindow: '15 minutes' };
-
   const userResponse = {
     type: 'object',
     properties: {
@@ -48,7 +46,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/login', {
-    config: { rateLimit: authRateLimit },
+    config: { rateLimit: loginRateLimit },
     schema: {
       tags: ['Auth'],
       summary: 'Login and create a refresh session',
@@ -138,7 +136,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/forgot-password', {
-    config: { rateLimit: authRateLimit },
+    config: { rateLimit: forgotPasswordRateLimit },
     schema: {
       tags: ['Auth'],
       summary: 'Send password reset OTP',

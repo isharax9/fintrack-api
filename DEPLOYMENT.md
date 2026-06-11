@@ -5,7 +5,7 @@
 - Node.js 20
 - PostgreSQL
 - Redis
-- SMTP provider credentials
+- Resend API credentials
 
 ## Required Commands
 
@@ -48,6 +48,8 @@ Use `.env.example` as the variable checklist. Production must set:
 Set `TRUST_PROXY=true` only when the API is behind a trusted load balancer or platform proxy.
 
 Set `ENABLE_CRON=true` for exactly one API worker/process that should run recurring jobs.
+
+Before any public production launch, re-enable and validate route-level rate limiting for auth and other abuse-prone endpoints.
 
 ## Health Checks
 

@@ -4,8 +4,9 @@ import { redis } from '../config/redis';
 
 export default fp(async (fastify) => {
   fastify.register(rateLimit, {
-    max: 100,
+    max: 300,
     timeWindow: '1 minute',
-    redis: redis ? redis : undefined
+    redis: redis ? redis : undefined,
+    skipOnError: true,
   });
 });

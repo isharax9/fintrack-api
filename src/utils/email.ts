@@ -24,7 +24,7 @@ export const sendOTP = async (email: string, otp: string) => {
     });
 
     if (error) {
-      throw new Error(error.message);
+      throw new Error(`Resend ${error.statusCode ?? 'error'}: ${error.message}`);
     }
 
     console.log(`OTP email sent via Resend — messageId: ${data?.id}`);

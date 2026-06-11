@@ -31,5 +31,6 @@ The dependency audit must stay at zero high-or-critical vulnerabilities unless a
 ## Remaining Security Work
 
 - Move refresh tokens to httpOnly cookies or a backend-for-frontend session model when the new frontend is built.
+- Re-enable and production-tune auth and API rate limiting before any public production release.
 - Add secret scanning in the repository host.
 - Add dependency update automation.
