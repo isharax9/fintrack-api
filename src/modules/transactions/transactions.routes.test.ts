@@ -95,6 +95,33 @@ describe('transactions routes', () => {
     await app.close();
   });
 
+  it('passes search and tag filters to the transaction service', async () => {
+    const app = await buildTestApp();
+    mocks.verifyAccessToken.mockReturnValue({ userId: 'user_1', sessionId: 'session_1' });
+    mocks.listTransactions.mockResolvedValue({
+      data: [],
+      meta: { total: 0, page: 2, limit: 25, totalPages: 0 },
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/transactions?search=coffee&tagId=${validCuid}&page=2&limit=25`,
+      headers: {
+        authorization: 'Bearer access-token',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(mocks.listTransactions).toHaveBeenCalledWith('user_1', {
+      search: 'coffee',
+      tagId: validCuid,
+      page: 2,
+      limit: 25,
+    });
+
+    await app.close();
+  });
+
   it('returns the centralized not-found error shape when the service throws an AppError', async () => {
     const app = await buildTestApp();
     mocks.verifyAccessToken.mockReturnValue({ userId: 'user_1', sessionId: 'session_1' });

@@ -1,15 +1,18 @@
 import PDFDocument from 'pdfkit-table';
 import { prisma } from '../../config/db';
+import { buildTransactionWhere } from '../transactions/transactions.service';
+import { TransactionQuery } from '../transactions/transactions.schema';
 
-export const generateTransactionsPdf = async (userId: string) => {
+export const generateTransactionsPdf = async (userId: string, query: TransactionQuery) => {
   const doc = new PDFDocument({ margin: 30, size: 'A4' });
 
   doc.fontSize(20).text('FinTrack - Transactions Report', { align: 'center' });
   doc.moveDown();
 
+  const where = await buildTransactionWhere(userId, query);
   const transactions = await prisma.transaction.findMany({
-    where: { userId },
-    include: { category: true, account: true },
+    where,
+    include: { account: true, category: true, tags: true },
     orderBy: { date: 'desc' }
   });
 
@@ -19,6 +22,7 @@ export const generateTransactionsPdf = async (userId: string) => {
       { label: "Date", property: 'date', width: 100 },
       { label: "Title", property: 'title', width: 150 },
       { label: "Category", property: 'category', width: 100 },
+      { label: "Account", property: 'account', width: 90 },
       { label: "Amount", property: 'amount', width: 80 },
       { label: "Type", property: 'type', width: 80 }
     ],
@@ -26,6 +30,7 @@ export const generateTransactionsPdf = async (userId: string) => {
       date: t.date.toISOString().split('T')[0],
       title: t.title,
       category: t.category.name,
+      account: t.account?.name || 'Unassigned',
       amount: t.amount.toString(),
       type: t.type
     }))

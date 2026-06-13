@@ -5,24 +5,47 @@ import { createAuditLog } from '../audit/audit.service';
 import { RequestMetadata } from '../../utils/requestContext';
 import { badRequest, notFound } from '../../utils/errors';
 
-export const listTransactions = async (userId: string, query: TransactionQuery) => {
+export const buildTransactionWhere = async (userId: string, query: TransactionQuery) => {
   const where: Prisma.TransactionWhereInput = { userId };
-  
+
   if (query.type) where.type = query.type;
   if (query.categoryId) where.categoryId = query.categoryId;
   if (query.accountId) where.accountId = query.accountId;
+  if (query.tagId) {
+    const tag = await prisma.tag.findFirst({
+      where: { id: query.tagId, userId },
+      select: { id: true },
+    });
+    if (!tag) throw badRequest('Invalid tag');
+    where.tags = { some: { id: query.tagId, userId } };
+  }
   if (query.from || query.to) {
     where.date = {};
     if (query.from) where.date.gte = new Date(query.from);
     if (query.to) where.date.lte = new Date(query.to);
   }
 
+  if (query.search) {
+    where.OR = [
+      { title: { contains: query.search, mode: 'insensitive' } },
+      { notes: { contains: query.search, mode: 'insensitive' } },
+      { category: { name: { contains: query.search, mode: 'insensitive' } } },
+      { account: { name: { contains: query.search, mode: 'insensitive' } } },
+      { tags: { some: { name: { contains: query.search, mode: 'insensitive' }, userId } } },
+    ];
+  }
+
+  return where;
+};
+
+export const listTransactions = async (userId: string, query: TransactionQuery) => {
+  const where = await buildTransactionWhere(userId, query);
   const skip = (query.page - 1) * query.limit;
   
   const [data, total] = await Promise.all([
     prisma.transaction.findMany({
       where,
-      include: { category: true, tags: true },
+      include: { account: true, category: true, tags: true },
       orderBy: { date: 'desc' },
       skip,
       take: query.limit,

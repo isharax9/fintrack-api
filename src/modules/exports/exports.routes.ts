@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { bearerAuth, errorResponse, monthYearQuery } from '../../utils/openapi';
+import { bearerAuth, errorResponse, monthYearQuery, transactionExportQuery } from '../../utils/openapi';
 import * as exportsController from './exports.controller';
 
 export default async function exportsRoutes(fastify: FastifyInstance) {
@@ -10,6 +10,7 @@ export default async function exportsRoutes(fastify: FastifyInstance) {
       tags: ['Exports'],
       summary: 'Export transactions as PDF',
       security: bearerAuth,
+      querystring: transactionExportQuery,
       response: {
         200: {
           description: 'PDF document',

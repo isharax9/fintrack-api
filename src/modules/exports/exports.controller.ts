@@ -2,6 +2,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { getAuthContext, getRequestMetadata } from '../../utils/requestContext';
 import { createAuditLog } from '../audit/audit.service';
+import { transactionQuerySchema } from '../transactions/transactions.schema';
 import * as pdfService from './pdfService';
 
 const querySchema = z.object({
@@ -11,13 +12,14 @@ const querySchema = z.object({
 
 export const exportTransactionsPdf = async (request: FastifyRequest, reply: FastifyReply) => {
   const { userId } = getAuthContext(request);
-  const doc = await pdfService.generateTransactionsPdf(userId);
+  const query = transactionQuerySchema.parse(request.query);
+  const doc = await pdfService.generateTransactionsPdf(userId, query);
   await createAuditLog({
     userId,
     action: 'EXPORT_TRANSACTIONS_PDF',
     entityType: 'Export',
     ...getRequestMetadata(request),
-    metadata: { format: 'pdf', report: 'transactions' },
+    metadata: { format: 'pdf', report: 'transactions', filters: query },
   });
 
   reply.header('Content-Type', 'application/pdf');

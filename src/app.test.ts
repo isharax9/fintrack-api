@@ -118,7 +118,10 @@ describe('app OpenAPI', () => {
 
     expect(path('/api/accounts').post.requestBody.content['application/json'].schema.required).toEqual(['name', 'type']);
     expect(path('/api/transactions').get.parameters.map((param: { name: string }) => param.name)).toEqual(
-      expect.arrayContaining(['type', 'categoryId', 'accountId', 'from', 'to', 'page', 'limit']),
+      expect.arrayContaining(['search', 'type', 'categoryId', 'accountId', 'tagId', 'from', 'to', 'page', 'limit']),
+    );
+    expect(path('/api/exports/transactions/pdf').get.parameters.map((param: { name: string }) => param.name)).toEqual(
+      expect.arrayContaining(['search', 'type', 'categoryId', 'accountId', 'tagId', 'from', 'to']),
     );
     expect(path('/api/transactions').get.responses['200'].content['application/json'].schema.properties).toHaveProperty('data');
     expect(path('/ready').get.responses).toHaveProperty('503');

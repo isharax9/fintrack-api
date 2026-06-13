@@ -17,9 +17,11 @@ export const updateTransactionSchema = createTransactionSchema.partial().extend(
 });
 
 export const transactionQuerySchema = z.object({
+  search: z.string().trim().min(1).max(120).optional(),
   type: z.nativeEnum(TransactionType).optional(),
   categoryId: z.string().cuid().optional(),
   accountId: z.string().cuid().optional(),
+  tagId: z.string().cuid().optional(),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
   page: z.coerce.number().min(1).default(1),

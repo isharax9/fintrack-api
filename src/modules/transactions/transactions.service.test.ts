@@ -11,10 +11,13 @@ const mocks = vi.hoisted(() => ({
     },
     tag: {
       findMany: vi.fn(),
+      findFirst: vi.fn(),
     },
     transaction: {
       create: vi.fn(),
+      findMany: vi.fn(),
       findUnique: vi.fn(),
+      count: vi.fn(),
       delete: vi.fn(),
     },
     $transaction: vi.fn(),
@@ -29,6 +32,59 @@ describe('transactions service money flows', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.prisma.$transaction.mockImplementation(async (callback) => callback(mocks.prisma));
+  });
+
+  it('builds search and tag filters without leaking another user tag', async () => {
+    const transactionsService = await import('./transactions.service');
+    mocks.prisma.tag.findFirst.mockResolvedValue({ id: 'c123456789012345678901234' });
+    mocks.prisma.transaction.findMany.mockResolvedValue([]);
+    mocks.prisma.transaction.count.mockResolvedValue(0);
+
+    await transactionsService.listTransactions('user_1', {
+      search: 'coffee',
+      tagId: 'c123456789012345678901234',
+      page: 1,
+      limit: 10,
+    });
+
+    expect(mocks.prisma.tag.findFirst).toHaveBeenCalledWith({
+      where: { id: 'c123456789012345678901234', userId: 'user_1' },
+      select: { id: true },
+    });
+    expect(mocks.prisma.transaction.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          userId: 'user_1',
+          tags: { some: { id: 'c123456789012345678901234', userId: 'user_1' } },
+          OR: expect.arrayContaining([
+            { title: { contains: 'coffee', mode: 'insensitive' } },
+            { notes: { contains: 'coffee', mode: 'insensitive' } },
+            { category: { name: { contains: 'coffee', mode: 'insensitive' } } },
+            { account: { name: { contains: 'coffee', mode: 'insensitive' } } },
+            { tags: { some: { name: { contains: 'coffee', mode: 'insensitive' }, userId: 'user_1' } } },
+          ]),
+        }),
+        include: { account: true, category: true, tags: true },
+      }),
+    );
+  });
+
+  it('rejects a tag filter that is not owned by the user', async () => {
+    const transactionsService = await import('./transactions.service');
+    mocks.prisma.tag.findFirst.mockResolvedValue(null);
+
+    await expect(
+      transactionsService.listTransactions('user_1', {
+        tagId: 'c123456789012345678901234',
+        page: 1,
+        limit: 10,
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'BAD_REQUEST',
+      message: 'Invalid tag',
+    });
+    expect(mocks.prisma.transaction.findMany).not.toHaveBeenCalled();
   });
 
   it('creates an income transaction and increments the linked account balance', async () => {

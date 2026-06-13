@@ -150,6 +150,7 @@ export const transactionResponse = {
     notes: nullableString,
     createdAt: dateTime,
     updatedAt: dateTime,
+    account: { ...accountResponse, nullable: true },
     category: categoryResponse,
     tags: { type: 'array', items: tagResponse },
   },
@@ -370,13 +371,28 @@ export const updateTransactionBody = {
 export const transactionQuery = {
   type: 'object',
   properties: {
+    search: { type: 'string', minLength: 1, maxLength: 120 },
     type: { type: 'string', enum: ['INCOME', 'EXPENSE'] },
     categoryId: id,
     accountId: id,
+    tagId: id,
     from: dateTime,
     to: dateTime,
     ...paginationQuery,
     limit: { type: 'integer', minimum: 1, maximum: 100, default: 10 },
+  },
+};
+
+export const transactionExportQuery = {
+  type: 'object',
+  properties: {
+    search: { type: 'string', minLength: 1, maxLength: 120 },
+    type: { type: 'string', enum: ['INCOME', 'EXPENSE'] },
+    categoryId: id,
+    accountId: id,
+    tagId: id,
+    from: dateTime,
+    to: dateTime,
   },
 };
 
