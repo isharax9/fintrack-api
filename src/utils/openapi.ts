@@ -185,10 +185,9 @@ export const budgetGoalResponse = {
     month: { type: 'integer' },
     year: { type: 'integer' },
     createdAt: dateTime,
-    updatedAt: dateTime,
     category: categoryResponse,
   },
-  required: ['id', 'userId', 'categoryId', 'limitAmount', 'month', 'year', 'createdAt', 'updatedAt'],
+  required: ['id', 'userId', 'categoryId', 'limitAmount', 'month', 'year', 'createdAt'],
 };
 
 export const savingsBucketResponse = {

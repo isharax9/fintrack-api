@@ -228,7 +228,7 @@ Missing for production: get one, update/reversal, delete policy, pagination, and
 
 | Method | Path | Auth | Query |
 | --- | --- | --- | --- |
-| GET | `/api/exports/transactions/pdf` | Yes | none |
+| GET | `/api/exports/transactions/pdf` | Yes | `search?`, `type?`, `categoryId?`, `accountId?`, `tagId?`, `from?`, `to?` |
 | GET | `/api/exports/reports/pdf` | Yes | `month`, `year` |
 
 ### Audit Logs
