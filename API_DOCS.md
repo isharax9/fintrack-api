@@ -130,13 +130,30 @@ Main Prisma models:
 
 | Method | Path | Auth | Body / Query |
 | --- | --- | --- | --- |
-| GET | `/api/transactions` | Yes | `type?`, `categoryId?`, `accountId?`, `from?`, `to?`, `page?`, `limit?` |
+| GET | `/api/transactions` | Yes | `search?`, `type?`, `categoryId?`, `accountId?`, `tagId?`, `from?`, `to?`, `page?`, `limit?` |
 | POST | `/api/transactions` | Yes | `{ title, amount, type, categoryId, date, notes?, accountId?, tagIds? }` |
 | GET | `/api/transactions/:id` | Yes | none |
 | PUT | `/api/transactions/:id` | Yes | partial transaction body |
 | DELETE | `/api/transactions/:id` | Yes | none |
 
 `type` is `INCOME` or `EXPENSE`. Dates must be ISO datetime strings.
+
+### Imports
+
+| Method | Path | Auth | Body / Query |
+| --- | --- | --- | --- |
+| POST | `/api/imports/transactions` | Yes | multipart `file`, query `dryRun?` |
+
+CSV transaction imports support preview and commit:
+
+- `dryRun=true` validates rows and returns row-level statuses without writing.
+- `dryRun=false` imports valid non-duplicate rows.
+- Required CSV columns: `date`, `title`, `amount`, `type`, `category`.
+- Optional CSV columns: `account`, `notes`, `tags`.
+- `category`, `account`, and `tags` may reference user-owned names or IDs.
+- `tags` are separated with `;` or `|`.
+- Imports update account balances transactionally and write audit logs.
+- Duplicate rows are skipped based on date, title, amount, type, category, and account.
 
 ### Categories
 

@@ -1,5 +1,6 @@
 import Fastify, { FastifyInstance } from 'fastify';
 import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
+import multipart from '@fastify/multipart';
 import { authenticate } from './middleware/authenticate';
 
 // Plugins
@@ -23,6 +24,7 @@ import savingsRoutes from './modules/savings/savings.routes';
 import exportsRoutes from './modules/exports/exports.routes';
 import recurringRoutes from './modules/recurring/recurring.routes';
 import auditRoutes from './modules/audit/audit.routes';
+import importsRoutes from './modules/imports/imports.routes';
 import { errorHandler, notFound } from './utils/errors';
 import { healthResponse, readinessResponse } from './utils/openapi';
 import { prisma } from './config/db';
@@ -128,6 +130,12 @@ export function buildApp() {
   app.register(helmetPlugin);
   app.register(rateLimitPlugin);
   app.register(swaggerPlugin);
+  app.register(multipart, {
+    limits: {
+      files: 1,
+      fileSize: 1024 * 1024,
+    },
+  });
   app.register(healthRoutes);
 
   // Register API Routes
@@ -145,6 +153,7 @@ export function buildApp() {
   app.register(exportsRoutes, { prefix: '/api/exports' });
   app.register(recurringRoutes, { prefix: '/api/recurring' });
   app.register(auditRoutes, { prefix: '/api/audit' });
+  app.register(importsRoutes, { prefix: '/api/imports' });
 
   const cronTasks = env.ENABLE_CRON ? initCronJobs() : [];
   if (env.ENABLE_CRON) {

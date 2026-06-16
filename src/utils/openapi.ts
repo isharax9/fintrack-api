@@ -396,6 +396,45 @@ export const transactionExportQuery = {
   },
 };
 
+const importRowResponse = {
+  type: 'object',
+  properties: {
+    rowNumber: { type: 'integer' },
+    status: { type: 'string', enum: ['valid', 'error', 'duplicate', 'imported', 'skipped'] },
+    errors: { type: 'array', items: { type: 'string' } },
+    data: {
+      type: 'object',
+      nullable: true,
+      properties: {
+        title: { type: 'string' },
+        amount: money,
+        type: { type: 'string', enum: ['INCOME', 'EXPENSE'] },
+        date: dateTime,
+        categoryId: id,
+        accountId: id,
+        notes: { type: 'string' },
+        tagIds: { type: 'array', items: id },
+      },
+    },
+  },
+  required: ['rowNumber', 'status', 'errors'],
+};
+
+export const importTransactionsResponse = {
+  type: 'object',
+  properties: {
+    dryRun: { type: 'boolean' },
+    totalRows: { type: 'integer' },
+    validRows: { type: 'integer' },
+    errorRows: { type: 'integer' },
+    duplicateRows: { type: 'integer' },
+    importedRows: { type: 'integer' },
+    skippedRows: { type: 'integer' },
+    rows: { type: 'array', items: importRowResponse },
+  },
+  required: ['dryRun', 'totalRows', 'validRows', 'errorRows', 'duplicateRows', 'importedRows', 'skippedRows', 'rows'],
+};
+
 export const createTransferBody = {
   type: 'object',
   properties: {
