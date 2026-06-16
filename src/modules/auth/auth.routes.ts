@@ -21,10 +21,9 @@ export default async function authRoutes(fastify: FastifyInstance) {
     type: 'object',
     properties: {
       accessToken: { type: 'string' },
-      refreshToken: { type: 'string' },
       user: userResponse,
     },
-    required: ['accessToken', 'refreshToken', 'user'],
+    required: ['accessToken', 'user'],
   };
 
   fastify.post('/register', {
@@ -66,20 +65,14 @@ export default async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/refresh', {
     schema: {
       tags: ['Auth'],
-      summary: 'Rotate refresh token and issue a new access token',
-      body: {
-        type: 'object',
-        properties: { refreshToken: { type: 'string' } },
-        required: ['refreshToken'],
-      },
+      summary: 'Rotate refresh cookie and issue a new access token',
       response: {
         200: {
           type: 'object',
           properties: {
             accessToken: { type: 'string' },
-            refreshToken: { type: 'string' },
           },
-          required: ['accessToken', 'refreshToken'],
+          required: ['accessToken'],
         },
         401: errorResponse,
       },

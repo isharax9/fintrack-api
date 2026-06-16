@@ -1,5 +1,5 @@
 import { prisma } from '../../config/db';
-import { UpdateUserInput } from './user.schema';
+import { UpdateNotificationPreferencesInput, UpdateUserInput } from './user.schema';
 import { badRequest, notFound } from '../../utils/errors';
 import { hashPassword, comparePassword } from '../../utils/hash';
 
@@ -36,6 +36,50 @@ export const updateProfile = async (userId: string, data: UpdateUserInput) => {
   return user;
 };
 
+const mapNotificationPreferences = (user: {
+  notifyBudgetAlerts: boolean;
+  notifyMonthlyReports: boolean;
+  notifyBillReminders: boolean;
+}) => ({
+  budgetAlerts: user.notifyBudgetAlerts,
+  monthlyReports: user.notifyMonthlyReports,
+  billReminders: user.notifyBillReminders,
+});
+
+export const getNotificationPreferences = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      notifyBudgetAlerts: true,
+      notifyMonthlyReports: true,
+      notifyBillReminders: true,
+    },
+  });
+  if (!user) throw notFound('User not found');
+  return mapNotificationPreferences(user);
+};
+
+export const updateNotificationPreferences = async (
+  userId: string,
+  data: UpdateNotificationPreferencesInput,
+) => {
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      notifyBudgetAlerts: data.budgetAlerts,
+      notifyMonthlyReports: data.monthlyReports,
+      notifyBillReminders: data.billReminders,
+    },
+    select: {
+      notifyBudgetAlerts: true,
+      notifyMonthlyReports: true,
+      notifyBillReminders: true,
+    },
+  });
+
+  return mapNotificationPreferences(user);
+};
+
 export const deleteAccount = async (userId: string) => {
   await prisma.user.delete({
     where: { id: userId }
@@ -55,4 +99,3 @@ export const changePassword = async (userId: string, currentPassword: string, ne
     data: { password: hashedPassword },
   });
 };
-

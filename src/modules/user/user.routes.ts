@@ -1,5 +1,13 @@
 import { FastifyInstance } from 'fastify';
-import { bearerAuth, errorResponse, messageResponse, updateUserBody, userResponse } from '../../utils/openapi';
+import {
+  bearerAuth,
+  errorResponse,
+  messageResponse,
+  notificationPreferencesResponse,
+  updateNotificationPreferencesBody,
+  updateUserBody,
+  userResponse,
+} from '../../utils/openapi';
 import * as userController from './user.controller';
 
 export default async function userRoutes(fastify: FastifyInstance) {
@@ -24,6 +32,27 @@ export default async function userRoutes(fastify: FastifyInstance) {
       response: { 200: userResponse, 400: errorResponse, 401: errorResponse },
     },
     handler: userController.updateMe,
+  });
+
+  fastify.get('/me/preferences', {
+    schema: {
+      tags: ['User'],
+      summary: 'Get current user notification preferences',
+      security: bearerAuth,
+      response: { 200: notificationPreferencesResponse, 401: errorResponse, 404: errorResponse },
+    },
+    handler: userController.getNotificationPreferences,
+  });
+
+  fastify.put('/me/preferences', {
+    schema: {
+      tags: ['User'],
+      summary: 'Update current user notification preferences',
+      security: bearerAuth,
+      body: updateNotificationPreferencesBody,
+      response: { 200: notificationPreferencesResponse, 400: errorResponse, 401: errorResponse },
+    },
+    handler: userController.updateNotificationPreferences,
   });
 
   fastify.delete('/me', {
@@ -54,4 +83,3 @@ export default async function userRoutes(fastify: FastifyInstance) {
     handler: userController.changePassword,
   });
 }
-

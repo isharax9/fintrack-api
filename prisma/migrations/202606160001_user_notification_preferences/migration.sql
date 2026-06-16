@@ -1,0 +1,4 @@
+ALTER TABLE "User"
+ADD COLUMN "notifyBudgetAlerts" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "notifyMonthlyReports" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "notifyBillReminders" BOOLEAN NOT NULL DEFAULT false;

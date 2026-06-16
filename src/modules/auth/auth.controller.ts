@@ -3,40 +3,51 @@ import { getAuthContext, getRequestMetadata } from '../../utils/requestContext';
 import {
   forgotPasswordSchema,
   loginSchema,
-  refreshSchema,
   registerSchema,
   resetPasswordSchema,
   verifyOtpSchema,
 } from './auth.schema';
 import * as authService from './auth.service';
+import { clearRefreshCookie, REFRESH_COOKIE_NAME, setRefreshCookie } from './auth.cookies';
+import { unauthorized } from '../../utils/errors';
 
 export const register = async (request: FastifyRequest, reply: FastifyReply) => {
   const data = registerSchema.parse(request.body);
   const result = await authService.register(data, getRequestMetadata(request));
-  return reply.code(201).send(result);
+  setRefreshCookie(reply, result.refreshToken);
+  const { refreshToken: _refreshToken, ...body } = result;
+  return reply.code(201).send(body);
 };
 
 export const login = async (request: FastifyRequest, reply: FastifyReply) => {
   const data = loginSchema.parse(request.body);
   const result = await authService.login(data, getRequestMetadata(request));
-  return reply.send(result);
+  setRefreshCookie(reply, result.refreshToken);
+  const { refreshToken: _refreshToken, ...body } = result;
+  return reply.send(body);
 };
 
 export const refresh = async (request: FastifyRequest, reply: FastifyReply) => {
-  const data = refreshSchema.parse(request.body);
-  const result = await authService.refresh(data.refreshToken, getRequestMetadata(request));
-  return reply.send(result);
+  const body = request.body as { refreshToken?: string } | undefined;
+  const refreshToken = request.cookies?.[REFRESH_COOKIE_NAME] || body?.refreshToken;
+  if (!refreshToken) throw unauthorized('Invalid refresh token');
+
+  const result = await authService.refresh(refreshToken, getRequestMetadata(request));
+  setRefreshCookie(reply, result.refreshToken);
+  return reply.send({ accessToken: result.accessToken });
 };
 
 export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
   const { userId, sessionId } = getAuthContext(request);
   await authService.logout(userId, sessionId, getRequestMetadata(request));
+  clearRefreshCookie(reply);
   return reply.send({ message: 'Logged out' });
 };
 
 export const logoutAll = async (request: FastifyRequest, reply: FastifyReply) => {
   const { userId } = getAuthContext(request);
   await authService.logoutAll(userId, getRequestMetadata(request));
+  clearRefreshCookie(reply);
   return reply.send({ message: 'All sessions logged out' });
 };
 

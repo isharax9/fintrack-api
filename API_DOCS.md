@@ -99,7 +99,7 @@ Main Prisma models:
 | --- | --- | --- | --- |
 | POST | `/api/auth/register` | No | `{ name, email, password }` |
 | POST | `/api/auth/login` | No | `{ email, password }` |
-| POST | `/api/auth/refresh` | No | `{ refreshToken }` |
+| POST | `/api/auth/refresh` | No | httpOnly `fintrack_refresh` cookie |
 | POST | `/api/auth/logout` | Yes | none |
 | POST | `/api/auth/logout-all` | Yes | none |
 | GET | `/api/auth/sessions` | Yes | none |
@@ -113,6 +113,8 @@ Main Prisma models:
 | --- | --- | --- | --- |
 | GET | `/api/user/me` | Yes | none |
 | PUT | `/api/user/me` | Yes | `{ name?, currency? }` |
+| GET | `/api/user/me/preferences` | Yes | none |
+| PUT | `/api/user/me/preferences` | Yes | `{ budgetAlerts?, monthlyReports?, billReminders? }` |
 | DELETE | `/api/user/me` | Yes | none |
 
 ### Accounts
@@ -274,5 +276,4 @@ Centralized error shape:
 - Generate frontend API types from `/openapi.json`.
 - Add pagination to remaining list endpoints.
 - Add timezone-aware reporting.
-- Add httpOnly-cookie refresh delivery when the frontend auth layer is rebuilt.
 - Add richer recurring transaction operations such as skip next run and run now.

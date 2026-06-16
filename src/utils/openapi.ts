@@ -83,6 +83,26 @@ export const userResponse = {
   required: ['id', 'name', 'email', 'currency', 'createdAt', 'updatedAt'],
 };
 
+export const notificationPreferencesResponse = {
+  type: 'object',
+  properties: {
+    budgetAlerts: { type: 'boolean' },
+    monthlyReports: { type: 'boolean' },
+    billReminders: { type: 'boolean' },
+  },
+  required: ['budgetAlerts', 'monthlyReports', 'billReminders'],
+};
+
+export const updateNotificationPreferencesBody = {
+  type: 'object',
+  properties: {
+    budgetAlerts: { type: 'boolean' },
+    monthlyReports: { type: 'boolean' },
+    billReminders: { type: 'boolean' },
+  },
+  additionalProperties: false,
+};
+
 export const refreshSessionResponse = {
   type: 'object',
   properties: {

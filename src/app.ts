@@ -1,5 +1,6 @@
 import Fastify, { FastifyInstance } from 'fastify';
 import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
+import cookie from '@fastify/cookie';
 import multipart from '@fastify/multipart';
 import { authenticate } from './middleware/authenticate';
 
@@ -130,6 +131,7 @@ export function buildApp() {
   app.register(helmetPlugin);
   app.register(rateLimitPlugin);
   app.register(swaggerPlugin);
+  app.register(cookie);
   app.register(multipart, {
     limits: {
       files: 1,
