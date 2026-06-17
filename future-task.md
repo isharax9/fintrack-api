@@ -28,7 +28,7 @@ This file is the forward-looking task list for the full FinTrack project. It was
 ### Frontend
 
 1. Build an audit/security history screen from `/api/audit`.
-2. Add onboarding screens for currency, first account, starter budgets, savings goal, and first transaction.
+2. ✅ Added onboarding screens for currency, first account, starter budgets, savings goal, and first transaction.
 3. Add transfer history filters, transfer detail, and reversal UI once the backend policy exists.
 4. Add richer recurring controls: skip, run now, execution history, failure states, and calendar view.
 5. Add manual savings bucket funding and withdrawal UI.
@@ -79,7 +79,7 @@ This file is the forward-looking task list for the full FinTrack project. It was
 
 ### Product Features
 
-1. Guided onboarding with setup progress and starter templates.
+1. ✅ Guided onboarding with setup progress and starter templates.
 2. Merchant/title rules for auto-categorization and tag assignment.
 3. Budget variance reports and month-over-month comparisons.
 4. Cashflow forecast using recurring income, recurring bills, savings goals, and account balances.
@@ -108,7 +108,7 @@ This file is the forward-looking task list for the full FinTrack project. It was
 1. Refresh stale documentation and make `future-task.md`, OpenAPI, backend docs, and frontend docs agree.
 2. Add audit log UI and generated-type migration for the highest-use hooks.
 3. Add CSRF/session hardening and production cookie verification.
-4. Add onboarding plus first-run empty states.
+4. ✅ Add onboarding plus first-run empty states.
 5. Expand transfers and recurring operations.
 6. Add manual savings bucket funding and richer savings history.
 7. Add accessibility, responsive, and cross-browser verification.

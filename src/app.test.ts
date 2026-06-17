@@ -145,4 +145,65 @@ describe('app OpenAPI', () => {
 
     await app.close();
   });
+
+  it('allows credentialed localhost browser CORS preflight requests', async () => {
+    const app = await buildTestApp();
+    const response = await app.inject({
+      method: 'OPTIONS',
+      url: '/api/user/me',
+      headers: {
+        origin: 'http://localhost:3000',
+        'access-control-request-method': 'GET',
+        'access-control-request-headers': 'authorization,content-type',
+      },
+    });
+
+    expect(response.statusCode).toBe(204);
+    expect(response.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+    expect(response.headers['access-control-allow-credentials']).toBe('true');
+    expect(response.headers['access-control-allow-methods']).toContain('GET');
+    expect(response.headers['access-control-allow-headers']).toContain('authorization');
+
+    await app.close();
+  });
+
+  it('allows onboarding profile update CORS preflight requests', async () => {
+    const app = await buildTestApp();
+    const response = await app.inject({
+      method: 'OPTIONS',
+      url: '/api/user/me',
+      headers: {
+        origin: 'http://localhost:3000',
+        'access-control-request-method': 'PUT',
+        'access-control-request-headers': 'authorization,content-type',
+      },
+    });
+
+    expect(response.statusCode).toBe(204);
+    expect(response.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+    expect(response.headers['access-control-allow-credentials']).toBe('true');
+    expect(response.headers['access-control-allow-methods']).toContain('PUT');
+    expect(response.headers['access-control-allow-headers']).toContain('authorization');
+
+    await app.close();
+  });
+
+  it('includes CORS headers on protected API responses', async () => {
+    const app = await buildTestApp();
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/user/me',
+      headers: {
+        origin: 'http://localhost:3000',
+        authorization: 'Bearer invalid-token',
+      },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+    expect(response.headers['access-control-allow-credentials']).toBe('true');
+    expect(response.headers['cross-origin-resource-policy']).toBe('cross-origin');
+
+    await app.close();
+  });
 });

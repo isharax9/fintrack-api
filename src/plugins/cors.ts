@@ -28,5 +28,6 @@ export default fp(async (fastify) => {
       cb(new Error('Not allowed by CORS'), false);
     },
     credentials: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
 });

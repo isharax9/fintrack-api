@@ -3,6 +3,7 @@ import helmet from '@fastify/helmet';
 
 export default fp(async (fastify) => {
   fastify.register(helmet, {
-    global: true
+    global: true,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
   });
 });
