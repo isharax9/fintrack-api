@@ -75,7 +75,7 @@ Main Prisma models:
 - `User`: profile, auth credentials, currency.
 - `Account`: bank/cash/credit/wallet account and current balance.
 - `Transaction`: income or expense, optional account, category, tags.
-- `Transfer`: movement between two accounts.
+- `Transfer`: movement between two accounts, with posted/reversed/reversal status for audit-safe corrections.
 - `Category`: user-owned spending/income category.
 - `Tag`: user-owned transaction label.
 - `BudgetGoal`: category budget for a month/year.
@@ -190,12 +190,14 @@ Tag notes:
 
 ### Transfers
 
-| Method | Path | Auth | Body |
+| Method | Path | Auth | Body / Query |
 | --- | --- | --- | --- |
-| GET | `/api/transfers` | Yes | none |
+| GET | `/api/transfers` | Yes | Query: `accountId?`, `fromAccountId?`, `toAccountId?`, `status?`, `from?`, `to?`, `page?`, `limit?` |
+| GET | `/api/transfers/:id` | Yes | none |
 | POST | `/api/transfers` | Yes | `{ fromAccountId, toAccountId, amount, date?, notes? }` |
+| POST | `/api/transfers/:id/reverse` | Yes | `{ notes? }` |
 
-Missing for production: get one, update/reversal, delete policy, pagination, and date filters.
+Policy: transfers are append-only. Posted transfers can be reversed once, which creates a linked reversal transfer and marks the original transfer as `REVERSED`. Direct update/delete is intentionally unsupported so account history and audit logs stay traceable.
 
 ### Recurring Transactions
 

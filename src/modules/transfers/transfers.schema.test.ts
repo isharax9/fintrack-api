@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createTransferSchema } from './transfers.schema';
+import { createTransferSchema, transferQuerySchema } from './transfers.schema';
 
 const fromAccountId = 'clv0000000000000000000000';
 const toAccountId = 'clv0000000000000000000001';
@@ -24,5 +24,21 @@ describe('transfer schemas', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it('coerces transfer history query filters and pagination', () => {
+    const result = transferQuerySchema.parse({
+      accountId: fromAccountId,
+      status: 'POSTED',
+      page: '2',
+      limit: '25',
+    });
+
+    expect(result).toEqual({
+      accountId: fromAccountId,
+      status: 'POSTED',
+      page: 2,
+      limit: 25,
+    });
   });
 });

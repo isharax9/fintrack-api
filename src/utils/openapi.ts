@@ -223,12 +223,39 @@ export const transferResponse = {
     amount: money,
     date: dateTime,
     notes: nullableString,
+    status: { type: 'string', enum: ['POSTED', 'REVERSED', 'REVERSAL'] },
+    reversedAt: { ...dateTime, nullable: true },
+    reversalOfId: { ...id, nullable: true },
     createdAt: dateTime,
     updatedAt: dateTime,
     fromAccount: accountResponse,
     toAccount: accountResponse,
+    reversal: {
+      type: 'object',
+      nullable: true,
+      properties: {
+        id,
+        date: dateTime,
+        amount: money,
+        status: { type: 'string', enum: ['POSTED', 'REVERSED', 'REVERSAL'] },
+        notes: nullableString,
+      },
+      required: ['id', 'date', 'amount', 'status'],
+    },
+    reversalOf: {
+      type: 'object',
+      nullable: true,
+      properties: {
+        id,
+        date: dateTime,
+        amount: money,
+        status: { type: 'string', enum: ['POSTED', 'REVERSED', 'REVERSAL'] },
+        notes: nullableString,
+      },
+      required: ['id', 'date', 'amount', 'status'],
+    },
   },
-  required: ['id', 'userId', 'fromAccountId', 'toAccountId', 'amount', 'date', 'createdAt', 'updatedAt'],
+  required: ['id', 'userId', 'fromAccountId', 'toAccountId', 'amount', 'date', 'status', 'createdAt', 'updatedAt'],
 };
 
 export const budgetGoalResponse = {
@@ -520,6 +547,28 @@ export const createTransferBody = {
     notes: { type: 'string' },
   },
   required: ['fromAccountId', 'toAccountId', 'amount'],
+};
+
+export const transferQuery = {
+  type: 'object',
+  properties: {
+    accountId: id,
+    fromAccountId: id,
+    toAccountId: id,
+    status: { type: 'string', enum: ['POSTED', 'REVERSED', 'REVERSAL'] },
+    from: dateTime,
+    to: dateTime,
+    ...paginationQuery,
+    limit: { type: 'integer', minimum: 1, maximum: 100, default: 10 },
+  },
+};
+
+export const reverseTransferBody = {
+  type: 'object',
+  properties: {
+    notes: { type: 'string', maxLength: 500 },
+  },
+  additionalProperties: false,
 };
 
 export const createBudgetGoalBody = {

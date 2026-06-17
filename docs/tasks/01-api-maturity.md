@@ -73,6 +73,9 @@ Schema constraints to add:
   - `Transaction(userId, categoryId, date)`
   - `Transaction(userId, accountId, date)`
   - `Transfer(userId, date)`
+  - `Transfer(userId, status, date)`
+  - `Transfer(userId, fromAccountId, date)`
+  - `Transfer(userId, toAccountId, date)`
   - `RecurringTransaction(userId, isActive, nextDate)`
 
 Acceptance criteria:

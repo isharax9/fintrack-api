@@ -62,10 +62,18 @@ model Transfer {
   amount          Decimal  @db.Decimal(10, 2)
   date            DateTime @default(now())
   notes           String?
+  status          TransferStatus @default(POSTED)
+  reversedAt      DateTime?
+  reversalOfId    String?  @unique
+  reversalOf      Transfer? @relation("TransferReversal", fields: [reversalOfId], references: [id], onDelete: SetNull)
+  reversal        Transfer? @relation("TransferReversal")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   @@index([userId, date])
+  @@index([userId, status, date])
+  @@index([userId, fromAccountId, date])
+  @@index([userId, toAccountId, date])
 }
 
 model Transaction {
@@ -257,6 +265,12 @@ enum AccountType {
   CASH
   CREDIT
   WALLET
+}
+
+enum TransferStatus {
+  POSTED
+  REVERSED
+  REVERSAL
 }
 
 enum cronFrequency {

@@ -84,6 +84,8 @@ describe('app OpenAPI', () => {
       ['/api/transactions/{id}', 'delete'],
       ['/api/transfers', 'get'],
       ['/api/transfers', 'post'],
+      ['/api/transfers/{id}', 'get'],
+      ['/api/transfers/{id}/reverse', 'post'],
       ['/api/budget-goals', 'get'],
       ['/api/budget-goals', 'post'],
       ['/api/budget-goals/{id}', 'put'],
