@@ -294,9 +294,6 @@
                     "accessToken": {
                       "type": "string"
                     },
-                    "refreshToken": {
-                      "type": "string"
-                    },
                     "user": {
                       "type": "object",
                       "properties": {
@@ -331,7 +328,6 @@
                   },
                   "required": [
                     "accessToken",
-                    "refreshToken",
                     "user"
                   ]
                 }
@@ -451,9 +447,6 @@
                     "accessToken": {
                       "type": "string"
                     },
-                    "refreshToken": {
-                      "type": "string"
-                    },
                     "user": {
                       "type": "object",
                       "properties": {
@@ -488,7 +481,6 @@
                   },
                   "required": [
                     "accessToken",
-                    "refreshToken",
                     "user"
                   ]
                 }
@@ -535,28 +527,10 @@
     },
     "/api/auth/refresh": {
       "post": {
-        "summary": "Rotate refresh token and issue a new access token",
+        "summary": "Rotate refresh cookie and issue a new access token",
         "tags": [
           "Auth"
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "refreshToken": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "refreshToken"
-                ]
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Default Response",
@@ -567,14 +541,10 @@
                   "properties": {
                     "accessToken": {
                       "type": "string"
-                    },
-                    "refreshToken": {
-                      "type": "string"
                     }
                   },
                   "required": [
-                    "accessToken",
-                    "refreshToken"
+                    "accessToken"
                   ]
                 }
               }
@@ -689,6 +659,74 @@
     "/api/auth/logout-all": {
       "post": {
         "summary": "Logout all sessions",
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout-other": {
+      "post": {
+        "summary": "Logout other sessions",
         "tags": [
           "Auth"
         ],
@@ -1452,6 +1490,374 @@
         }
       }
     },
+    "/api/user/me/preferences": {
+      "get": {
+        "summary": "Get current user notification preferences",
+        "tags": [
+          "User"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "budgetAlerts": {
+                      "type": "boolean"
+                    },
+                    "monthlyReports": {
+                      "type": "boolean"
+                    },
+                    "billReminders": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "budgetAlerts",
+                    "monthlyReports",
+                    "billReminders"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update current user notification preferences",
+        "tags": [
+          "User"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "budgetAlerts": {
+                    "type": "boolean"
+                  },
+                  "monthlyReports": {
+                    "type": "boolean"
+                  },
+                  "billReminders": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "budgetAlerts": {
+                      "type": "boolean"
+                    },
+                    "monthlyReports": {
+                      "type": "boolean"
+                    },
+                    "billReminders": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "budgetAlerts",
+                    "monthlyReports",
+                    "billReminders"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/me/change-password": {
+      "post": {
+        "summary": "Change current user password",
+        "tags": [
+          "User"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "currentPassword": {
+                    "type": "string"
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "minLength": 8
+                  }
+                },
+                "required": [
+                  "currentPassword",
+                  "newPassword"
+                ]
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/categories/": {
       "get": {
         "summary": "List categories",
@@ -1492,14 +1898,6 @@
                       },
                       "isDefault": {
                         "type": "boolean"
-                      },
-                      "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                      },
-                      "updatedAt": {
-                        "type": "string",
-                        "format": "date-time"
                       }
                     },
                     "required": [
@@ -1508,9 +1906,7 @@
                       "name",
                       "color",
                       "icon",
-                      "isDefault",
-                      "createdAt",
-                      "updatedAt"
+                      "isDefault"
                     ]
                   }
                 }
@@ -1620,14 +2016,6 @@
                     },
                     "isDefault": {
                       "type": "boolean"
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "updatedAt": {
-                      "type": "string",
-                      "format": "date-time"
                     }
                   },
                   "required": [
@@ -1636,9 +2024,7 @@
                     "name",
                     "color",
                     "icon",
-                    "isDefault",
-                    "createdAt",
-                    "updatedAt"
+                    "isDefault"
                   ]
                 }
               }
@@ -1791,14 +2177,6 @@
                     },
                     "isDefault": {
                       "type": "boolean"
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "updatedAt": {
-                      "type": "string",
-                      "format": "date-time"
                     }
                   },
                   "required": [
@@ -1807,9 +2185,7 @@
                     "name",
                     "color",
                     "icon",
-                    "isDefault",
-                    "createdAt",
-                    "updatedAt"
+                    "isDefault"
                   ]
                 }
               }
@@ -2080,6 +2456,16 @@
           {
             "schema": {
               "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "in": "query",
+            "name": "search",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
               "enum": [
                 "INCOME",
                 "EXPENSE"
@@ -2105,6 +2491,15 @@
             },
             "in": "query",
             "name": "accountId",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "query",
+            "name": "tagId",
             "required": false
           },
           {
@@ -2211,6 +2606,52 @@
                             "type": "string",
                             "format": "date-time"
                           },
+                          "account": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "userId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "BANK",
+                                  "CASH",
+                                  "CREDIT",
+                                  "WALLET"
+                                ]
+                              },
+                              "balance": {
+                                "type": "number"
+                              },
+                              "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "updatedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "userId",
+                              "name",
+                              "type",
+                              "balance",
+                              "createdAt",
+                              "updatedAt"
+                            ],
+                            "nullable": true
+                          },
                           "category": {
                             "type": "object",
                             "properties": {
@@ -2233,14 +2674,6 @@
                               },
                               "isDefault": {
                                 "type": "boolean"
-                              },
-                              "createdAt": {
-                                "type": "string",
-                                "format": "date-time"
-                              },
-                              "updatedAt": {
-                                "type": "string",
-                                "format": "date-time"
                               }
                             },
                             "required": [
@@ -2249,9 +2682,7 @@
                               "name",
                               "color",
                               "icon",
-                              "isDefault",
-                              "createdAt",
-                              "updatedAt"
+                              "isDefault"
                             ]
                           },
                           "tags": {
@@ -2269,22 +2700,12 @@
                                 },
                                 "name": {
                                   "type": "string"
-                                },
-                                "createdAt": {
-                                  "type": "string",
-                                  "format": "date-time"
-                                },
-                                "updatedAt": {
-                                  "type": "string",
-                                  "format": "date-time"
                                 }
                               },
                               "required": [
                                 "id",
                                 "userId",
-                                "name",
-                                "createdAt",
-                                "updatedAt"
+                                "name"
                               ]
                             }
                           }
@@ -2526,6 +2947,52 @@
                       "type": "string",
                       "format": "date-time"
                     },
+                    "account": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "userId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "BANK",
+                            "CASH",
+                            "CREDIT",
+                            "WALLET"
+                          ]
+                        },
+                        "balance": {
+                          "type": "number"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "userId",
+                        "name",
+                        "type",
+                        "balance",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "nullable": true
+                    },
                     "category": {
                       "type": "object",
                       "properties": {
@@ -2548,14 +3015,6 @@
                         },
                         "isDefault": {
                           "type": "boolean"
-                        },
-                        "createdAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "updatedAt": {
-                          "type": "string",
-                          "format": "date-time"
                         }
                       },
                       "required": [
@@ -2564,9 +3023,7 @@
                         "name",
                         "color",
                         "icon",
-                        "isDefault",
-                        "createdAt",
-                        "updatedAt"
+                        "isDefault"
                       ]
                     },
                     "tags": {
@@ -2584,22 +3041,12 @@
                           },
                           "name": {
                             "type": "string"
-                          },
-                          "createdAt": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "updatedAt": {
-                            "type": "string",
-                            "format": "date-time"
                           }
                         },
                         "required": [
                           "id",
                           "userId",
-                          "name",
-                          "createdAt",
-                          "updatedAt"
+                          "name"
                         ]
                       }
                     }
@@ -2768,6 +3215,52 @@
                       "type": "string",
                       "format": "date-time"
                     },
+                    "account": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "userId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "BANK",
+                            "CASH",
+                            "CREDIT",
+                            "WALLET"
+                          ]
+                        },
+                        "balance": {
+                          "type": "number"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "userId",
+                        "name",
+                        "type",
+                        "balance",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "nullable": true
+                    },
                     "category": {
                       "type": "object",
                       "properties": {
@@ -2790,14 +3283,6 @@
                         },
                         "isDefault": {
                           "type": "boolean"
-                        },
-                        "createdAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "updatedAt": {
-                          "type": "string",
-                          "format": "date-time"
                         }
                       },
                       "required": [
@@ -2806,9 +3291,7 @@
                         "name",
                         "color",
                         "icon",
-                        "isDefault",
-                        "createdAt",
-                        "updatedAt"
+                        "isDefault"
                       ]
                     },
                     "tags": {
@@ -2826,22 +3309,12 @@
                           },
                           "name": {
                             "type": "string"
-                          },
-                          "createdAt": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "updatedAt": {
-                            "type": "string",
-                            "format": "date-time"
                           }
                         },
                         "required": [
                           "id",
                           "userId",
-                          "name",
-                          "createdAt",
-                          "updatedAt"
+                          "name"
                         ]
                       }
                     }
@@ -3059,6 +3532,52 @@
                       "type": "string",
                       "format": "date-time"
                     },
+                    "account": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "userId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "BANK",
+                            "CASH",
+                            "CREDIT",
+                            "WALLET"
+                          ]
+                        },
+                        "balance": {
+                          "type": "number"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "userId",
+                        "name",
+                        "type",
+                        "balance",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "nullable": true
+                    },
                     "category": {
                       "type": "object",
                       "properties": {
@@ -3081,14 +3600,6 @@
                         },
                         "isDefault": {
                           "type": "boolean"
-                        },
-                        "createdAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "updatedAt": {
-                          "type": "string",
-                          "format": "date-time"
                         }
                       },
                       "required": [
@@ -3097,9 +3608,7 @@
                         "name",
                         "color",
                         "icon",
-                        "isDefault",
-                        "createdAt",
-                        "updatedAt"
+                        "isDefault"
                       ]
                     },
                     "tags": {
@@ -3117,22 +3626,12 @@
                           },
                           "name": {
                             "type": "string"
-                          },
-                          "createdAt": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "updatedAt": {
-                            "type": "string",
-                            "format": "date-time"
                           }
                         },
                         "required": [
                           "id",
                           "userId",
-                          "name",
-                          "createdAt",
-                          "updatedAt"
+                          "name"
                         ]
                       }
                     }
@@ -3440,10 +3939,6 @@
                         "type": "string",
                         "format": "date-time"
                       },
-                      "updatedAt": {
-                        "type": "string",
-                        "format": "date-time"
-                      },
                       "category": {
                         "type": "object",
                         "properties": {
@@ -3466,14 +3961,6 @@
                           },
                           "isDefault": {
                             "type": "boolean"
-                          },
-                          "createdAt": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "updatedAt": {
-                            "type": "string",
-                            "format": "date-time"
                           }
                         },
                         "required": [
@@ -3482,9 +3969,7 @@
                           "name",
                           "color",
                           "icon",
-                          "isDefault",
-                          "createdAt",
-                          "updatedAt"
+                          "isDefault"
                         ]
                       }
                     },
@@ -3495,8 +3980,7 @@
                       "limitAmount",
                       "month",
                       "year",
-                      "createdAt",
-                      "updatedAt"
+                      "createdAt"
                     ]
                   }
                 }
@@ -3654,10 +4138,6 @@
                       "type": "string",
                       "format": "date-time"
                     },
-                    "updatedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
                     "category": {
                       "type": "object",
                       "properties": {
@@ -3680,14 +4160,6 @@
                         },
                         "isDefault": {
                           "type": "boolean"
-                        },
-                        "createdAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "updatedAt": {
-                          "type": "string",
-                          "format": "date-time"
                         }
                       },
                       "required": [
@@ -3696,9 +4168,7 @@
                         "name",
                         "color",
                         "icon",
-                        "isDefault",
-                        "createdAt",
-                        "updatedAt"
+                        "isDefault"
                       ]
                     }
                   },
@@ -3709,8 +4179,7 @@
                     "limitAmount",
                     "month",
                     "year",
-                    "createdAt",
-                    "updatedAt"
+                    "createdAt"
                   ]
                 }
               }
@@ -3898,10 +4367,6 @@
                       "type": "string",
                       "format": "date-time"
                     },
-                    "updatedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
                     "category": {
                       "type": "object",
                       "properties": {
@@ -3924,14 +4389,6 @@
                         },
                         "isDefault": {
                           "type": "boolean"
-                        },
-                        "createdAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "updatedAt": {
-                          "type": "string",
-                          "format": "date-time"
                         }
                       },
                       "required": [
@@ -3940,9 +4397,7 @@
                         "name",
                         "color",
                         "icon",
-                        "isDefault",
-                        "createdAt",
-                        "updatedAt"
+                        "isDefault"
                       ]
                     }
                   },
@@ -3953,8 +4408,7 @@
                     "limitAmount",
                     "month",
                     "year",
-                    "createdAt",
-                    "updatedAt"
+                    "createdAt"
                   ]
                 }
               }
@@ -5671,22 +6125,12 @@
                       },
                       "name": {
                         "type": "string"
-                      },
-                      "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                      },
-                      "updatedAt": {
-                        "type": "string",
-                        "format": "date-time"
                       }
                     },
                     "required": [
                       "id",
                       "userId",
-                      "name",
-                      "createdAt",
-                      "updatedAt"
+                      "name"
                     ]
                   }
                 }
@@ -5744,7 +6188,8 @@
                 "properties": {
                   "name": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "maxLength": 40
                   }
                 },
                 "required": [
@@ -5777,22 +6222,12 @@
                     },
                     "name": {
                       "type": "string"
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "updatedAt": {
-                      "type": "string",
-                      "format": "date-time"
                     }
                   },
                   "required": [
                     "id",
                     "userId",
-                    "name",
-                    "createdAt",
-                    "updatedAt"
+                    "name"
                   ]
                 }
               }
@@ -5886,7 +6321,8 @@
                 "properties": {
                   "name": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "maxLength": 40
                   }
                 },
                 "required": []
@@ -5928,22 +6364,12 @@
                     },
                     "name": {
                       "type": "string"
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "updatedAt": {
-                      "type": "string",
-                      "format": "date-time"
                     }
                   },
                   "required": [
                     "id",
                     "userId",
-                    "name",
-                    "createdAt",
-                    "updatedAt"
+                    "name"
                   ]
                 }
               }
@@ -7048,6 +7474,75 @@
         "tags": [
           "Exports"
         ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "in": "query",
+            "name": "search",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "INCOME",
+                "EXPENSE"
+              ]
+            },
+            "in": "query",
+            "name": "type",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "query",
+            "name": "categoryId",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "query",
+            "name": "accountId",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "query",
+            "name": "tagId",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "in": "query",
+            "name": "from",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "in": "query",
+            "name": "to",
+            "required": false
+          }
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -7431,14 +7926,6 @@
                               },
                               "isDefault": {
                                 "type": "boolean"
-                              },
-                              "createdAt": {
-                                "type": "string",
-                                "format": "date-time"
-                              },
-                              "updatedAt": {
-                                "type": "string",
-                                "format": "date-time"
                               }
                             },
                             "required": [
@@ -7447,9 +7934,7 @@
                               "name",
                               "color",
                               "icon",
-                              "isDefault",
-                              "createdAt",
-                              "updatedAt"
+                              "isDefault"
                             ]
                           }
                         },
@@ -7781,14 +8266,6 @@
                         },
                         "isDefault": {
                           "type": "boolean"
-                        },
-                        "createdAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "updatedAt": {
-                          "type": "string",
-                          "format": "date-time"
                         }
                       },
                       "required": [
@@ -7797,9 +8274,7 @@
                         "name",
                         "color",
                         "icon",
-                        "isDefault",
-                        "createdAt",
-                        "updatedAt"
+                        "isDefault"
                       ]
                     }
                   },
@@ -8049,14 +8524,6 @@
                         },
                         "isDefault": {
                           "type": "boolean"
-                        },
-                        "createdAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "updatedAt": {
-                          "type": "string",
-                          "format": "date-time"
                         }
                       },
                       "required": [
@@ -8065,9 +8532,7 @@
                         "name",
                         "color",
                         "icon",
-                        "isDefault",
-                        "createdAt",
-                        "updatedAt"
+                        "isDefault"
                       ]
                     }
                   },
@@ -8372,14 +8837,6 @@
                         },
                         "isDefault": {
                           "type": "boolean"
-                        },
-                        "createdAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "updatedAt": {
-                          "type": "string",
-                          "format": "date-time"
                         }
                       },
                       "required": [
@@ -8388,9 +8845,7 @@
                         "name",
                         "color",
                         "icon",
-                        "isDefault",
-                        "createdAt",
-                        "updatedAt"
+                        "isDefault"
                       ]
                     }
                   },
@@ -8846,6 +9301,884 @@
           }
         }
       }
+    },
+    "/api/imports/transactions": {
+      "post": {
+        "summary": "Preview or import transactions from CSV",
+        "tags": [
+          "Imports"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "boolean",
+              "default": true
+            },
+            "in": "query",
+            "name": "dryRun",
+            "required": false
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "dryRun": {
+                      "type": "boolean"
+                    },
+                    "totalRows": {
+                      "type": "integer"
+                    },
+                    "validRows": {
+                      "type": "integer"
+                    },
+                    "errorRows": {
+                      "type": "integer"
+                    },
+                    "duplicateRows": {
+                      "type": "integer"
+                    },
+                    "importedRows": {
+                      "type": "integer"
+                    },
+                    "skippedRows": {
+                      "type": "integer"
+                    },
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "rowNumber": {
+                            "type": "integer"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "valid",
+                              "error",
+                              "duplicate",
+                              "imported",
+                              "skipped"
+                            ]
+                          },
+                          "errors": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "data": {
+                            "type": "object",
+                            "nullable": true,
+                            "properties": {
+                              "title": {
+                                "type": "string"
+                              },
+                              "amount": {
+                                "type": "number"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "INCOME",
+                                  "EXPENSE"
+                                ]
+                              },
+                              "date": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "categoryId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "accountId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "notes": {
+                                "type": "string"
+                              },
+                              "tagIds": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "required": [
+                          "rowNumber",
+                          "status",
+                          "errors"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "dryRun",
+                    "totalRows",
+                    "validRows",
+                    "errorRows",
+                    "duplicateRows",
+                    "importedRows",
+                    "skippedRows",
+                    "rows"
+                  ]
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "dryRun": {
+                      "type": "boolean"
+                    },
+                    "totalRows": {
+                      "type": "integer"
+                    },
+                    "validRows": {
+                      "type": "integer"
+                    },
+                    "errorRows": {
+                      "type": "integer"
+                    },
+                    "duplicateRows": {
+                      "type": "integer"
+                    },
+                    "importedRows": {
+                      "type": "integer"
+                    },
+                    "skippedRows": {
+                      "type": "integer"
+                    },
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "rowNumber": {
+                            "type": "integer"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "valid",
+                              "error",
+                              "duplicate",
+                              "imported",
+                              "skipped"
+                            ]
+                          },
+                          "errors": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "data": {
+                            "type": "object",
+                            "nullable": true,
+                            "properties": {
+                              "title": {
+                                "type": "string"
+                              },
+                              "amount": {
+                                "type": "number"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "INCOME",
+                                  "EXPENSE"
+                                ]
+                              },
+                              "date": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "categoryId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "accountId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "notes": {
+                                "type": "string"
+                              },
+                              "tagIds": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "required": [
+                          "rowNumber",
+                          "status",
+                          "errors"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "dryRun",
+                    "totalRows",
+                    "validRows",
+                    "errorRows",
+                    "duplicateRows",
+                    "importedRows",
+                    "skippedRows",
+                    "rows"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications/": {
+      "get": {
+        "summary": "List current user notifications",
+        "tags": [
+          "Notifications"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "in": "query",
+            "name": "page",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query",
+            "name": "unreadOnly",
+            "required": false
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "userId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "BUDGET_ALERT",
+                              "BILL_REMINDER",
+                              "SAVINGS_MILESTONE",
+                              "IMPORT_COMPLETE",
+                              "MONTHLY_REPORT",
+                              "SYSTEM"
+                            ]
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "entityType": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "entityId": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "metadata": {
+                            "nullable": true
+                          },
+                          "readAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "userId",
+                          "type",
+                          "title",
+                          "message",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "unreadCount": {
+                      "type": "integer"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number"
+                        },
+                        "page": {
+                          "type": "number"
+                        },
+                        "limit": {
+                          "type": "number"
+                        },
+                        "totalPages": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "page",
+                        "limit",
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "unreadCount",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications/unread-count": {
+      "get": {
+        "summary": "Get unread notification count",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "unreadCount": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "unreadCount"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications/{id}/read": {
+      "post": {
+        "summary": "Mark a notification as read",
+        "tags": [
+          "Notifications"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "userId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "BUDGET_ALERT",
+                        "BILL_REMINDER",
+                        "SAVINGS_MILESTONE",
+                        "IMPORT_COMPLETE",
+                        "MONTHLY_REPORT",
+                        "SYSTEM"
+                      ]
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "entityType": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "entityId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "metadata": {
+                      "nullable": true
+                    },
+                    "readAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "userId",
+                    "type",
+                    "title",
+                    "message",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications/read-all": {
+      "post": {
+        "summary": "Mark all notifications as read",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications/read": {
+      "delete": {
+        "summary": "Clear read notifications",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "servers": [
@@ -8896,6 +10229,9 @@
     },
     {
       "name": "Audit"
+    },
+    {
+      "name": "Notifications"
     }
   ]
 }

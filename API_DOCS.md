@@ -56,15 +56,16 @@ Current implementation:
 - Access token: JWT, default `15m`.
 - Refresh token: JWT, default `7d`, bound to a `RefreshSession`.
 - Refresh sessions are stored in PostgreSQL with hashed refresh tokens.
+- Refresh tokens are delivered in the httpOnly `fintrack_refresh` cookie.
 - Refresh token calls rotate the refresh token and invalidate the previous token.
+- Logout clears the refresh cookie and invalidates the current refresh session when a session is present.
 - OTP Redis key: `otp:{email}`, 10 minute TTL.
 - Password reset token: short-lived JWT signed with `ACCESS_TOKEN_SECRET`.
 
-Production change required:
+Production hardening still required:
 
-- Move refresh tokens out of browser `localStorage`.
-- Add httpOnly-cookie delivery or a backend-for-frontend session once the frontend is rebuilt.
-- Add session management UI.
+- Add CSRF protection or document the final same-site cookie threat model for state-changing requests.
+- Verify `Secure`, `HttpOnly`, `SameSite=Lax`, domain, proxy, and CORS behavior in the production hosting environment.
 - Use cryptographic OTP generation.
 
 ## Data Models
@@ -102,6 +103,7 @@ Main Prisma models:
 | POST | `/api/auth/refresh` | No | httpOnly `fintrack_refresh` cookie |
 | POST | `/api/auth/logout` | Yes | none |
 | POST | `/api/auth/logout-all` | Yes | none |
+| POST | `/api/auth/logout-other` | Yes | none |
 | GET | `/api/auth/sessions` | Yes | none |
 | POST | `/api/auth/forgot-password` | No | `{ email }` |
 | POST | `/api/auth/verify-otp` | No | `{ email, otp }` |
@@ -115,6 +117,7 @@ Main Prisma models:
 | PUT | `/api/user/me` | Yes | `{ name?, currency? }` |
 | GET | `/api/user/me/preferences` | Yes | none |
 | PUT | `/api/user/me/preferences` | Yes | `{ budgetAlerts?, monthlyReports?, billReminders? }` |
+| POST | `/api/user/me/change-password` | Yes | `{ currentPassword, newPassword }` |
 | DELETE | `/api/user/me` | Yes | none |
 
 ### Accounts
@@ -176,6 +179,14 @@ Default categories cannot be deleted.
 | POST | `/api/tags` | Yes | `{ name }` |
 | PUT | `/api/tags/:id` | Yes | `{ name? }` |
 | DELETE | `/api/tags/:id` | Yes | none |
+
+Tag notes:
+
+- Tags are reusable user-owned labels.
+- Transaction create/update accepts `tagIds` to attach or detach tags per transaction.
+- Transaction search matches tag names; `tagId` filters to transactions attached to one tag.
+- Tag names are trimmed, limited to 40 characters, and checked case-insensitively for duplicates.
+- Deleting a tag removes that label from transactions; the transactions remain.
 
 ### Transfers
 
@@ -241,6 +252,18 @@ Missing for production: get one, update/reversal, delete policy, pagination, and
 
 Audit logs include action, entity type, entity id, request id when available, hashed IP/user-agent when available, redacted metadata, and timestamp.
 
+### Notifications
+
+| Method | Path | Auth | Body / Query |
+| --- | --- | --- | --- |
+| GET | `/api/notifications` | Yes | `page?`, `limit?`, `unreadOnly?` |
+| GET | `/api/notifications/unread-count` | Yes | none |
+| POST | `/api/notifications/:id/read` | Yes | none |
+| POST | `/api/notifications/read-all` | Yes | none |
+| DELETE | `/api/notifications/read` | Yes | none |
+
+Notifications are in-app history records. Current producers include budget pressure checks, due-soon recurring items, savings milestones, and committed CSV imports. Delivery is in-app only; email/push delivery remains future work.
+
 ## Default Categories
 
 These are seeded for each user on registration:
@@ -273,7 +296,8 @@ Centralized error shape:
 
 ## Product TODO
 
-- Generate frontend API types from `/openapi.json`.
+- Continue migrating frontend hooks from hand-maintained domain types to generated OpenAPI operation types.
 - Add pagination to remaining list endpoints.
 - Add timezone-aware reporting.
 - Add richer recurring transaction operations such as skip next run and run now.
+- Add audit log UI in the frontend.

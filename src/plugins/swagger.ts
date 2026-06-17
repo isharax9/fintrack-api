@@ -40,6 +40,7 @@ export default fp(async (fastify) => {
         { name: 'Recurring' },
         { name: 'Exports' },
         { name: 'Audit' },
+        { name: 'Notifications' },
       ],
     },
   });

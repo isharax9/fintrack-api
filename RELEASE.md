@@ -18,7 +18,7 @@
 
 - Back up the database before applying migrations.
 - Run `npx prisma migrate deploy` before starting the new API version.
-- For this release, migration `202606160001_user_notification_preferences` adds notification preference defaults to `User`.
+- Current committed migrations include notification preferences (`202606160001_user_notification_preferences`) and in-app notification history (`202606170001_notifications`).
 
 ## Rollback
 

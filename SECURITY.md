@@ -30,7 +30,8 @@ The dependency audit must stay at zero high-or-critical vulnerabilities unless a
 
 ## Remaining Security Work
 
-- Move refresh tokens to httpOnly cookies or a backend-for-frontend session model when the new frontend is built.
+- Add CSRF protection or document the final same-site cookie threat model for cookie-backed refresh/authenticated state changes.
+- Verify production refresh-cookie `Secure`, `HttpOnly`, `SameSite`, domain/path, CORS credentials, and proxy behavior in the target hosting environment.
 - Re-enable and production-tune auth and API rate limiting before any public production release.
 - Add secret scanning in the repository host.
 - Add dependency update automation.

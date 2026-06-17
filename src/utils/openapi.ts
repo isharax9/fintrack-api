@@ -392,7 +392,7 @@ export const updateCategoryBody = { ...categoryBody, required: [] };
 export const tagBody = {
   type: 'object',
   properties: {
-    name: { type: 'string', minLength: 1 },
+    name: { type: 'string', minLength: 1, maxLength: 40 },
   },
   required: ['name'],
 };

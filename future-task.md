@@ -2,19 +2,19 @@
 
 Last updated: 2026-06-17
 
-This file is the forward-looking task list for the full FinTrack project. It was written from the current backend and frontend code, Graphify reports, and project docs. Older notes in `mvp.md`, `webMVP.md`, `API_DOCS.md`, and frontend task docs contain some stale items, so use this file as the current planning baseline.
+This file is the forward-looking task list for the full FinTrack project. It is aligned with the current backend API, generated OpenAPI contract, and frontend documentation as of the date above.
 
 ## Current Baseline
 
 - Backend: Fastify, TypeScript, Prisma, PostgreSQL, Redis, JWT access tokens, httpOnly refresh cookie rotation, audit logs, notifications, imports, exports, cron jobs, OpenAPI/Swagger, and Vitest coverage.
-- Frontend: Next.js App Router, React 19, Tailwind CSS 4, TanStack Query, Zustand, Axios, generated OpenAPI types, auth/dashboard/product routes, notification inbox, CSV import UI, unit tests, and Playwright smoke tests.
+- Frontend: Next.js App Router, React 19, Tailwind CSS 4, TanStack Query, Zustand, Axios, generated OpenAPI types, landing page, onboarding flow, auth/dashboard/product routes, notification inbox, CSV import UI, tag management, unit tests, and Playwright smoke tests.
 - Main product areas already exist: auth, dashboard, transactions, accounts, transfers, categories, tags, budgets, savings, recurring transactions, reports, settings, imports, exports, audit, and notifications.
 
 ## Missing Tasks
 
 ### Backend
 
-1. Keep API documentation current with the actual cookie-backed auth flow, notification endpoints, preferences endpoints, generated OpenAPI types, and implemented frontend coverage.
+1. ✅ Refreshed API documentation, generated OpenAPI, frontend API types, backend docs, and frontend docs to match the current cookie-backed auth flow, notification endpoints, preferences endpoints, tags, onboarding, and implemented frontend coverage.
 2. Add frontend-facing audit log hooks and UI. The backend exposes `/api/audit`, but the web app does not yet present audit history as a first-class settings/security view.
 3. Expand transfer APIs beyond create/list: get one transfer, filtered/paginated history, reversal workflow, and explicit delete/update policy.
 4. Add recurring execution history, skip-next-run, run-now, retry/failure visibility, and user-facing next-run audit details.
@@ -36,7 +36,7 @@ This file is the forward-looking task list for the full FinTrack project. It was
 7. Add cross-browser and mobile Playwright coverage beyond the current Chromium smoke suite.
 8. Add accessibility checks for dialogs, tables, filters, keyboard navigation, focus order, color contrast, and screen-reader names.
 9. Add responsive visual verification for dashboard, transactions, accounts, budgets, savings, recurring, reports, settings, and the new landing page.
-10. Add app-wide command/search behavior. Current topbar search focuses transaction search.
+10. Add app-wide command/search behavior. Current topbar search focuses transaction search, and transaction tag badges can filter the ledger by tag.
 
 ## Improvements Needed
 
@@ -105,7 +105,7 @@ This file is the forward-looking task list for the full FinTrack project. It was
 
 ## Suggested Execution Order
 
-1. Refresh stale documentation and make `future-task.md`, OpenAPI, backend docs, and frontend docs agree.
+1. ✅ Refresh stale documentation and make `future-task.md`, OpenAPI, backend docs, and frontend docs agree.
 2. Add audit log UI and generated-type migration for the highest-use hooks.
 3. Add CSRF/session hardening and production cookie verification.
 4. ✅ Add onboarding plus first-run empty states.
