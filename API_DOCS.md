@@ -204,10 +204,15 @@ Missing for production: get one, update/reversal, delete policy, pagination, and
 | GET | `/api/recurring` | Yes | `type?`, `accountId?`, `categoryId?`, `isActive?`, `page?`, `limit?` |
 | POST | `/api/recurring` | Yes | `{ accountId, title, amount, type, categoryId, frequency, nextDate, notes?, isActive? }` |
 | GET | `/api/recurring/:id` | Yes | none |
+| GET | `/api/recurring/:id/executions` | Yes | `page?`, `limit?` |
+| POST | `/api/recurring/:id/run-now` | Yes | none |
+| POST | `/api/recurring/:id/skip` | Yes | none |
 | PUT | `/api/recurring/:id` | Yes | partial recurring transaction body |
 | DELETE | `/api/recurring/:id` | Yes | none |
 
 `frequency` is one of `DAILY`, `WEEKLY`, `BIWEEKLY`, `MONTHLY`, `YEARLY`.
+
+Execution history records `SUCCESS`, `SKIPPED`, and `FAILED` outcomes for automatic runs, manual run-now actions, and skip actions.
 
 ### Budget Goals
 
@@ -231,6 +236,8 @@ Missing for production: get one, update/reversal, delete policy, pagination, and
 | Method | Path | Auth | Body |
 | --- | --- | --- | --- |
 | GET | `/api/savings/bucket` | Yes | none |
+| POST | `/api/savings/bucket/deposit` | Yes | `{ amount, note? }` |
+| POST | `/api/savings/bucket/withdraw` | Yes | `{ amount, note? }` |
 | GET | `/api/savings/goals` | Yes | none |
 | POST | `/api/savings/goals` | Yes | `{ name, targetAmount?, deadline? }` |
 | PUT | `/api/savings/goals/:id` | Yes | `{ name?, targetAmount?, deadline? }` |
@@ -299,5 +306,5 @@ Centralized error shape:
 - Continue migrating frontend hooks from hand-maintained domain types to generated OpenAPI operation types.
 - Add pagination to remaining list endpoints.
 - Add timezone-aware reporting.
-- Add richer recurring transaction operations such as skip next run and run now.
+- Add richer recurring transaction operations beyond run/skip, such as retry failed execution and bulk calendar operations.
 - Add audit log UI in the frontend.

@@ -2,6 +2,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { getAuthContext, getRequestMetadata } from '../../utils/requestContext';
 import {
   allocateFundsSchema,
+  bucketAdjustmentSchema,
   createSavingsGoalSchema,
   savingsParamsSchema,
   updateSavingsGoalSchema,
@@ -18,6 +19,20 @@ export const listGoals = async (request: FastifyRequest, reply: FastifyReply) =>
   const { userId } = getAuthContext(request);
   const goals = await savingsService.listGoals(userId);
   return reply.send(goals);
+};
+
+export const depositBucket = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { userId } = getAuthContext(request);
+  const data = bucketAdjustmentSchema.parse(request.body);
+  const bucket = await savingsService.adjustBucket(userId, 'deposit', data, getRequestMetadata(request));
+  return reply.send(bucket);
+};
+
+export const withdrawBucket = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { userId } = getAuthContext(request);
+  const data = bucketAdjustmentSchema.parse(request.body);
+  const bucket = await savingsService.adjustBucket(userId, 'withdraw', data, getRequestMetadata(request));
+  return reply.send(bucket);
 };
 
 export const createGoal = async (request: FastifyRequest, reply: FastifyReply) => {

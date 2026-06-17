@@ -1,7 +1,8 @@
 import cron, { ScheduledTask } from 'node-cron';
 import { prisma } from '../../config/db';
-import { addDays, addWeeks, addMonths, addYears, format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { createAuditLog } from '../audit/audit.service';
+import { processDueRecurringTransactions } from '../recurring/recurring.service';
 
 const logCron = (level: 'info' | 'error', message: string, data: Record<string, unknown> = {}) => {
   const payload = JSON.stringify({
@@ -28,69 +29,8 @@ export function initCronJobs(): ScheduledTask[] {
     const now = new Date();
     
     try {
-      const recurrings = await prisma.recurringTransaction.findMany({
-        where: {
-          isActive: true,
-          nextDate: { lte: now }
-        }
-      });
-
-      for (const rec of recurrings) {
-        await prisma.$transaction(async (tx) => {
-          // Add transaction
-          const incrementValue = rec.type === 'INCOME' ? rec.amount : -rec.amount;
-
-          const transaction = await tx.transaction.create({
-            data: {
-              userId: rec.userId,
-              accountId: rec.accountId,
-              categoryId: rec.categoryId,
-              title: rec.title,
-              amount: rec.amount,
-              type: rec.type,
-              notes: rec.notes,
-              date: new Date()
-            }
-          });
-
-          // Adjust account balance
-          await tx.account.update({
-            where: { id: rec.accountId },
-            data: { balance: { increment: incrementValue } }
-          });
-
-          // Update nextDate
-          let nextDate = new Date(rec.nextDate);
-          if (rec.frequency === 'DAILY') nextDate = addDays(nextDate, 1);
-          if (rec.frequency === 'WEEKLY') nextDate = addWeeks(nextDate, 1);
-          if (rec.frequency === 'BIWEEKLY') nextDate = addWeeks(nextDate, 2);
-          if (rec.frequency === 'MONTHLY') nextDate = addMonths(nextDate, 1);
-          if (rec.frequency === 'YEARLY') nextDate = addYears(nextDate, 1);
-
-          await tx.recurringTransaction.update({
-            where: { id: rec.id },
-            data: { nextDate }
-          });
-
-          await createAuditLog({
-            userId: rec.userId,
-            action: 'RECURRING_EXECUTED',
-            entityType: 'RecurringTransaction',
-            entityId: rec.id,
-            metadata: {
-              transactionId: transaction.id,
-              accountId: rec.accountId,
-              categoryId: rec.categoryId,
-              type: rec.type,
-              frequency: rec.frequency,
-              amount: rec.amount.toString(),
-              previousNextDate: rec.nextDate.toISOString(),
-              nextDate: nextDate.toISOString(),
-            },
-          }, tx);
-        });
-      }
-      logCron('info', 'Processed recurring transactions', { count: recurrings.length });
+      const count = await processDueRecurringTransactions(now);
+      logCron('info', 'Processed recurring transactions', { count });
     } catch (e) {
       logCron('error', 'Error processing recurring transactions', {
         error: e instanceof Error ? e.message : 'Unknown error',

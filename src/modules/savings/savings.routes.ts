@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import {
   allocateFundsBody,
   bearerAuth,
+  bucketAdjustmentBody,
   createSavingsGoalBody,
   errorResponse,
   idParam,
@@ -23,6 +24,28 @@ export default async function savingsRoutes(fastify: FastifyInstance) {
       response: { 200: savingsBucketResponse, 401: errorResponse },
     },
     handler: savingsController.getBucket,
+  });
+
+  fastify.post('/bucket/deposit', {
+    schema: {
+      tags: ['Savings'],
+      summary: 'Manually add funds to the savings bucket',
+      security: bearerAuth,
+      body: bucketAdjustmentBody,
+      response: { 200: savingsBucketResponse, 400: errorResponse, 401: errorResponse },
+    },
+    handler: savingsController.depositBucket,
+  });
+
+  fastify.post('/bucket/withdraw', {
+    schema: {
+      tags: ['Savings'],
+      summary: 'Manually withdraw funds from the savings bucket',
+      security: bearerAuth,
+      body: bucketAdjustmentBody,
+      response: { 200: savingsBucketResponse, 400: errorResponse, 401: errorResponse },
+    },
+    handler: savingsController.withdrawBucket,
   });
 
   fastify.get('/goals', {

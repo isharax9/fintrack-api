@@ -12,6 +12,11 @@ export const allocateFundsSchema = z.object({
   amount: z.number().positive(),
 });
 
+export const bucketAdjustmentSchema = z.object({
+  amount: z.number().positive(),
+  note: z.string().max(240).optional(),
+});
+
 export const savingsParamsSchema = z.object({
   id: z.string().cuid(),
 });
@@ -19,4 +24,5 @@ export const savingsParamsSchema = z.object({
 export type CreateSavingsGoalInput = z.infer<typeof createSavingsGoalSchema>;
 export type UpdateSavingsGoalInput = z.infer<typeof updateSavingsGoalSchema>;
 export type AllocateFundsInput = z.infer<typeof allocateFundsSchema>;
+export type BucketAdjustmentInput = z.infer<typeof bucketAdjustmentSchema>;
 export type SavingsParams = z.infer<typeof savingsParamsSchema>;

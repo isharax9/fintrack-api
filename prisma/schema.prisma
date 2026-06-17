@@ -25,6 +25,7 @@ model User {
   accounts              Account[]
   transfers             Transfer[]             @relation("UserTransfers")
   recurringTransactions RecurringTransaction[]
+  recurringExecutions   RecurringExecution[]
   savingsBuckets        SavingsBucket[]
   savingsGoals          SavingsGoal[]
   refreshSessions       RefreshSession[]
@@ -79,6 +80,7 @@ model Transaction {
   categoryId String
   category   Category        @relation(fields: [categoryId], references: [id])
   tags       Tag[]           @relation("TransactionToTag")
+  recurringExecutions RecurringExecution[]
   date       DateTime
   notes      String?
   createdAt  DateTime        @default(now())
@@ -110,6 +112,7 @@ model Category {
   transactions Transaction[]
   budgetGoals  BudgetGoal[]
   recurringTxs RecurringTransaction[]
+  recurringExecutions RecurringExecution[]
 
   @@unique([userId, name])
 }
@@ -168,8 +171,31 @@ model RecurringTransaction {
   notes           String?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
+  executions      RecurringExecution[]
 
   @@index([userId, isActive, nextDate])
+}
+
+model RecurringExecution {
+  id            String                    @id @default(cuid())
+  userId        String
+  user          User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recurringId   String
+  recurring     RecurringTransaction      @relation(fields: [recurringId], references: [id], onDelete: Cascade)
+  transactionId String?
+  transaction   Transaction?              @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  categoryId    String?
+  category      Category?                 @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  scheduledFor  DateTime
+  executedAt    DateTime                  @default(now())
+  status        RecurringExecutionStatus
+  trigger       RecurringExecutionTrigger
+  message       String?
+  createdAt     DateTime                  @default(now())
+
+  @@index([userId, executedAt])
+  @@index([recurringId, executedAt])
+  @@index([status, executedAt])
 }
 
 model RefreshSession {
@@ -253,4 +279,16 @@ enum NotificationType {
   IMPORT_COMPLETE
   MONTHLY_REPORT
   SYSTEM
+}
+
+enum RecurringExecutionStatus {
+  SUCCESS
+  SKIPPED
+  FAILED
+}
+
+enum RecurringExecutionTrigger {
+  AUTO
+  RUN_NOW
+  SKIP
 }

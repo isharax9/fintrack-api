@@ -308,6 +308,26 @@ export const recurringResponse = {
   ],
 };
 
+export const recurringExecutionResponse = {
+  type: 'object',
+  properties: {
+    id,
+    userId: id,
+    recurringId: id,
+    transactionId: { ...id, nullable: true },
+    categoryId: { ...id, nullable: true },
+    scheduledFor: dateTime,
+    executedAt: dateTime,
+    status: { type: 'string', enum: ['SUCCESS', 'SKIPPED', 'FAILED'] },
+    trigger: { type: 'string', enum: ['AUTO', 'RUN_NOW', 'SKIP'] },
+    message: nullableString,
+    createdAt: dateTime,
+    transaction: { ...transactionResponse, nullable: true },
+    category: { ...categoryResponse, nullable: true },
+  },
+  required: ['id', 'userId', 'recurringId', 'scheduledFor', 'executedAt', 'status', 'trigger', 'createdAt'],
+};
+
 export const auditLogResponse = {
   type: 'object',
   properties: {
@@ -541,6 +561,15 @@ export const allocateFundsBody = {
   required: ['amount'],
 };
 
+export const bucketAdjustmentBody = {
+  type: 'object',
+  properties: {
+    amount: { type: 'number', exclusiveMinimum: 0 },
+    note: { type: 'string', maxLength: 240 },
+  },
+  required: ['amount'],
+};
+
 export const createRecurringBody = {
   type: 'object',
   properties: {
@@ -566,6 +595,14 @@ export const recurringQuery = {
     accountId: id,
     categoryId: id,
     isActive: { type: 'boolean' },
+    ...paginationQuery,
+    limit: { type: 'integer', minimum: 1, maximum: 100, default: 25 },
+  },
+};
+
+export const recurringExecutionQuery = {
+  type: 'object',
+  properties: {
     ...paginationQuery,
     limit: { type: 'integer', minimum: 1, maximum: 100, default: 25 },
   },

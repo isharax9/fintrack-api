@@ -18,7 +18,7 @@ This file is the forward-looking task list for the full FinTrack project. It is 
 2. Add frontend-facing audit log hooks and UI. The backend exposes `/api/audit`, but the web app does not yet present audit history as a first-class settings/security view.
 3. Expand transfer APIs beyond create/list: get one transfer, filtered/paginated history, reversal workflow, and explicit delete/update policy.
 4. Add recurring execution history, skip-next-run, run-now, retry/failure visibility, and user-facing next-run audit details.
-5. Add explicit savings bucket funding and withdrawal workflows, not only rollover credits and allocation from bucket to goals.
+5. ✅ Added explicit savings bucket funding and withdrawal workflows, not only rollover credits and allocation from bucket to goals.
 6. Add data export for the full account, including transactions, accounts, budgets, tags, savings, audit logs, and notifications.
 7. Add a complete account deletion/export privacy flow with confirmation, export-before-delete option, and retention notes.
 8. Add onboarding APIs for first account, first categories/budgets, first savings goal, and empty-state setup progress.
@@ -30,8 +30,8 @@ This file is the forward-looking task list for the full FinTrack project. It is 
 1. Build an audit/security history screen from `/api/audit`.
 2. ✅ Added onboarding screens for currency, first account, starter budgets, savings goal, and first transaction.
 3. Add transfer history filters, transfer detail, and reversal UI once the backend policy exists.
-4. Add richer recurring controls: skip, run now, execution history, failure states, and calendar view.
-5. Add manual savings bucket funding and withdrawal UI.
+4. ✅ Added richer recurring controls: skip, run now, execution history, failure states, and calendar view.
+5. ✅ Added manual savings bucket funding and withdrawal UI.
 6. Migrate more hooks from hand-maintained domain types to generated OpenAPI operation types.
 7. Add cross-browser and mobile Playwright coverage beyond the current Chromium smoke suite.
 8. Add accessibility checks for dialogs, tables, filters, keyboard navigation, focus order, color contrast, and screen-reader names.
@@ -110,7 +110,7 @@ This file is the forward-looking task list for the full FinTrack project. It is 
 3. Add CSRF/session hardening and production cookie verification.
 4. ✅ Add onboarding plus first-run empty states.
 5. Expand transfers and recurring operations.
-6. Add manual savings bucket funding and richer savings history.
+6. ✅ Add manual savings bucket funding and richer savings history.
 7. Add accessibility, responsive, and cross-browser verification.
 8. Add observability, backup/restore docs, staging deployment, and production monitoring.
 9. Add advanced reporting, forecasts, and auto-categorization.

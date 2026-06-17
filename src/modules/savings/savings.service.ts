@@ -1,6 +1,6 @@
 import { NotificationType } from '@prisma/client';
 import { prisma } from '../../config/db';
-import { CreateSavingsGoalInput, UpdateSavingsGoalInput, AllocateFundsInput } from './savings.schema';
+import { AllocateFundsInput, BucketAdjustmentInput, CreateSavingsGoalInput, UpdateSavingsGoalInput } from './savings.schema';
 import { createAuditLog } from '../audit/audit.service';
 import { RequestMetadata } from '../../utils/requestContext';
 import { badRequest, notFound } from '../../utils/errors';
@@ -12,6 +12,49 @@ export const getBucket = async (userId: string) => {
     bucket = await prisma.savingsBucket.create({ data: { userId } });
   }
   return bucket;
+};
+
+export const adjustBucket = async (
+  userId: string,
+  direction: 'deposit' | 'withdraw',
+  data: BucketAdjustmentInput,
+  metadata: RequestMetadata,
+) => {
+  return prisma.$transaction(async (tx) => {
+    let bucket = await tx.savingsBucket.findUnique({ where: { userId } });
+    if (!bucket) {
+      bucket = await tx.savingsBucket.create({ data: { userId } });
+    }
+
+    if (direction === 'withdraw' && Number(bucket.balance) < data.amount) {
+      throw badRequest('Insufficient funds in Savings Bucket');
+    }
+
+    const updatedBucket = await tx.savingsBucket.update({
+      where: { id: bucket.id },
+      data: {
+        balance: direction === 'deposit'
+          ? { increment: data.amount }
+          : { decrement: data.amount },
+      },
+    });
+
+    await createAuditLog({
+      userId,
+      action: direction === 'deposit' ? 'SAVINGS_BUCKET_FUNDED' : 'SAVINGS_BUCKET_WITHDRAWN',
+      entityType: 'SavingsBucket',
+      entityId: bucket.id,
+      ...metadata,
+      metadata: {
+        amount: data.amount,
+        note: data.note,
+        previousBalance: bucket.balance.toString(),
+        balance: updatedBucket.balance.toString(),
+      },
+    }, tx);
+
+    return updatedBucket;
+  });
 };
 
 export const listGoals = async (userId: string) => {
