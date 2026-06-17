@@ -93,6 +93,44 @@ export const notificationPreferencesResponse = {
   required: ['budgetAlerts', 'monthlyReports', 'billReminders'],
 };
 
+export const notificationResponse = {
+  type: 'object',
+  properties: {
+    id,
+    userId: id,
+    type: {
+      type: 'string',
+      enum: ['BUDGET_ALERT', 'BILL_REMINDER', 'SAVINGS_MILESTONE', 'IMPORT_COMPLETE', 'MONTHLY_REPORT', 'SYSTEM'],
+    },
+    title: { type: 'string' },
+    message: { type: 'string' },
+    entityType: nullableString,
+    entityId: nullableString,
+    metadata: { nullable: true },
+    readAt: { ...dateTime, nullable: true },
+    createdAt: dateTime,
+  },
+  required: ['id', 'userId', 'type', 'title', 'message', 'createdAt'],
+};
+
+export const notificationCountResponse = {
+  type: 'object',
+  properties: {
+    unreadCount: { type: 'integer' },
+  },
+  required: ['unreadCount'],
+};
+
+export const paginatedNotificationsResponse = {
+  type: 'object',
+  properties: {
+    data: { type: 'array', items: notificationResponse },
+    unreadCount: { type: 'integer' },
+    meta: paginationMeta,
+  },
+  required: ['data', 'unreadCount', 'meta'],
+};
+
 export const updateNotificationPreferencesBody = {
   type: 'object',
   properties: {

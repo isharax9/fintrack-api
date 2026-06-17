@@ -1,9 +1,10 @@
-import { Prisma, TransactionType } from '@prisma/client';
+import { NotificationType, Prisma, TransactionType } from '@prisma/client';
 import { prisma } from '../../config/db';
 import { createAuditLog } from '../audit/audit.service';
 import { RequestMetadata } from '../../utils/requestContext';
 import { badRequest } from '../../utils/errors';
 import { parseCsv } from './csv';
+import { createNotification } from '../notifications/notifications.service';
 
 type ImportRowStatus = 'valid' | 'error' | 'duplicate' | 'imported' | 'skipped';
 
@@ -317,6 +318,19 @@ export const importTransactionsCsv = async (
         totalRows: dataRows.length,
       },
     }, tx);
+
+    await createNotification({
+      userId,
+      type: NotificationType.IMPORT_COMPLETE,
+      title: 'CSV import completed',
+      message: `${rowsToImport.length} transactions imported. ${duplicateRows} duplicates skipped.`,
+      entityType: 'Import',
+      metadata: {
+        importedRows: rowsToImport.length,
+        skippedRows: duplicateRows,
+        totalRows: dataRows.length,
+      },
+    }, tx);
   });
 
   return {
@@ -330,4 +344,3 @@ export const importTransactionsCsv = async (
     rows: finalRows.map((row) => row.status === 'valid' ? { ...row, status: 'imported' } : row),
   };
 };
-

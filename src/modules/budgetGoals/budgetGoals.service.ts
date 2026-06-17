@@ -1,8 +1,50 @@
+import { NotificationType, Prisma, TransactionType } from '@prisma/client';
 import { prisma } from '../../config/db';
 import { CreateBudgetGoalInput, UpdateBudgetGoalInput, BudgetGoalQuery } from './budgetGoals.schema';
 import { createAuditLog } from '../audit/audit.service';
 import { RequestMetadata } from '../../utils/requestContext';
 import { badRequest, conflict, notFound } from '../../utils/errors';
+import { createNotification } from '../notifications/notifications.service';
+
+const createBudgetPressureNotification = async (
+  client: Prisma.TransactionClient,
+  userId: string,
+  goal: { id: string; categoryId: string; month: number; year: number; limitAmount: unknown; category?: { name: string } | null },
+) => {
+  const monthStart = new Date(Date.UTC(goal.year, goal.month - 1, 1));
+  const monthEnd = new Date(Date.UTC(goal.year, goal.month, 0, 23, 59, 59, 999));
+  const spent = await client.transaction.aggregate({
+    where: {
+      userId,
+      categoryId: goal.categoryId,
+      type: TransactionType.EXPENSE,
+      date: { gte: monthStart, lte: monthEnd },
+    },
+    _sum: { amount: true },
+  });
+  const limit = Number(goal.limitAmount);
+  const spentAmount = Number(spent._sum.amount || 0);
+  if (limit <= 0 || spentAmount < limit * 0.8) return;
+
+  const percent = Math.round((spentAmount / limit) * 100);
+  const categoryName = goal.category?.name || 'Budget';
+  await createNotification({
+    userId,
+    type: NotificationType.BUDGET_ALERT,
+    title: percent >= 100 ? `${categoryName} is over budget` : `${categoryName} budget is under pressure`,
+    message: `${categoryName} is at ${percent}% of its monthly budget.`,
+    entityType: 'BudgetGoal',
+    entityId: goal.id,
+    metadata: {
+      categoryId: goal.categoryId,
+      month: goal.month,
+      year: goal.year,
+      spentAmount,
+      limitAmount: limit,
+      percent,
+    },
+  }, client);
+};
 
 export const listBudgetGoals = async (userId: string, query: BudgetGoalQuery) => {
   return prisma.budgetGoal.findMany({
@@ -49,6 +91,8 @@ export const createBudgetGoal = async (userId: string, data: CreateBudgetGoalInp
       metadata: { categoryId: goal.categoryId, month: goal.month, year: goal.year, limitAmount: goal.limitAmount.toString() },
     }, tx);
 
+    await createBudgetPressureNotification(tx, userId, goal);
+
     return goal;
   });
 };
@@ -72,6 +116,8 @@ export const updateBudgetGoal = async (userId: string, id: string, data: UpdateB
       ...metadata,
       metadata: { previousLimitAmount: goal.limitAmount.toString(), limitAmount: updated.limitAmount.toString() },
     }, tx);
+
+    await createBudgetPressureNotification(tx, userId, updated);
 
     return updated;
   });

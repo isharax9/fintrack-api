@@ -16,6 +16,9 @@ const mocks = vi.hoisted(() => ({
       findMany: vi.fn(),
       create: vi.fn(),
     },
+    notification: {
+      create: vi.fn(),
+    },
     $transaction: vi.fn(),
   },
   createAuditLog: vi.fn(),
@@ -46,6 +49,7 @@ describe('imports service', () => {
       amount: data.amount,
       type: data.type,
     }));
+    mocks.prisma.notification.create.mockResolvedValue({ id: 'notification_1' });
   });
 
   it('previews valid rows and reports row-level validation errors without writing', async () => {
@@ -131,6 +135,13 @@ describe('imports service', () => {
       }),
       mocks.prisma,
     );
+    expect(mocks.prisma.notification.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: 'user_1',
+        type: 'IMPORT_COMPLETE',
+        title: 'CSV import completed',
+        metadata: expect.objectContaining({ importedRows: 1, skippedRows: 2, totalRows: 3 }),
+      }),
+    });
   });
 });
-

@@ -29,6 +29,7 @@ model User {
   savingsGoals          SavingsGoal[]
   refreshSessions       RefreshSession[]
   auditLogs             AuditLog[]
+  notifications         Notification[]
 }
 
 model Account {
@@ -208,6 +209,23 @@ model AuditLog {
   @@index([action, createdAt])
 }
 
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       NotificationType
+  title      String
+  message    String
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  readAt     DateTime?
+  createdAt  DateTime         @default(now())
+
+  @@index([userId, readAt, createdAt])
+  @@index([userId, type, createdAt])
+}
+
 enum AccountType {
   BANK
   CASH
@@ -226,4 +244,13 @@ enum cronFrequency {
 enum TransactionType {
   INCOME
   EXPENSE
+}
+
+enum NotificationType {
+  BUDGET_ALERT
+  BILL_REMINDER
+  SAVINGS_MILESTONE
+  IMPORT_COMPLETE
+  MONTHLY_REPORT
+  SYSTEM
 }

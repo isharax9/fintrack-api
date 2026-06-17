@@ -1,8 +1,10 @@
+import { NotificationType } from '@prisma/client';
 import { prisma } from '../../config/db';
 import { CreateSavingsGoalInput, UpdateSavingsGoalInput, AllocateFundsInput } from './savings.schema';
 import { createAuditLog } from '../audit/audit.service';
 import { RequestMetadata } from '../../utils/requestContext';
 import { badRequest, notFound } from '../../utils/errors';
+import { createNotification } from '../notifications/notifications.service';
 
 export const getBucket = async (userId: string) => {
   let bucket = await prisma.savingsBucket.findUnique({ where: { userId } });
@@ -67,6 +69,24 @@ export const allocateGoalFunds = async (userId: string, id: string, data: Alloca
       where: { id },
       data: { currentAmount: { increment: data.amount } },
     });
+
+    const targetAmount = goal.targetAmount ? Number(goal.targetAmount) : null;
+    const previousAmount = Number(goal.currentAmount);
+    const currentAmount = Number(updatedGoal.currentAmount);
+    if (targetAmount && previousAmount < targetAmount && currentAmount >= targetAmount) {
+      await createNotification({
+        userId,
+        type: NotificationType.SAVINGS_MILESTONE,
+        title: `${updatedGoal.name} goal reached`,
+        message: `You reached your ${updatedGoal.name} savings target.`,
+        entityType: 'SavingsGoal',
+        entityId: updatedGoal.id,
+        metadata: {
+          targetAmount,
+          currentAmount,
+        },
+      }, tx);
+    }
 
     await createAuditLog({
       userId,

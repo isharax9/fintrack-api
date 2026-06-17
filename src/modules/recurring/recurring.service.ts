@@ -1,8 +1,9 @@
-import { Prisma } from '@prisma/client';
+import { NotificationType, Prisma } from '@prisma/client';
 import { prisma } from '../../config/db';
 import { badRequest, notFound } from '../../utils/errors';
 import { RequestMetadata } from '../../utils/requestContext';
 import { createAuditLog } from '../audit/audit.service';
+import { createNotification } from '../notifications/notifications.service';
 import { CreateRecurringInput, RecurringQuery, UpdateRecurringInput } from './recurring.schema';
 
 const assertOwnedAccount = async (userId: string, accountId: string) => {
@@ -13,6 +14,28 @@ const assertOwnedAccount = async (userId: string, accountId: string) => {
 const assertOwnedCategory = async (userId: string, categoryId: string) => {
   const category = await prisma.category.findFirst({ where: { id: categoryId, userId } });
   if (!category) throw badRequest('Invalid category');
+};
+
+const createDueSoonNotification = async (
+  client: Prisma.TransactionClient,
+  userId: string,
+  recurring: { id: string; title: string; amount: unknown; nextDate: Date; isActive: boolean },
+) => {
+  const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  if (!recurring.isActive || recurring.nextDate > sevenDaysFromNow) return;
+
+  await createNotification({
+    userId,
+    type: NotificationType.BILL_REMINDER,
+    title: `${recurring.title} is due soon`,
+    message: `${recurring.title} is scheduled for ${recurring.nextDate.toISOString().slice(0, 10)}.`,
+    entityType: 'RecurringTransaction',
+    entityId: recurring.id,
+    metadata: {
+      amount: Number(recurring.amount),
+      nextDate: recurring.nextDate.toISOString(),
+    },
+  }, client);
 };
 
 export const listRecurring = async (userId: string, query: RecurringQuery) => {
@@ -84,6 +107,8 @@ export const createRecurring = async (userId: string, data: CreateRecurringInput
       },
     }, tx);
 
+    await createDueSoonNotification(tx, userId, recurring);
+
     return recurring;
   });
 };
@@ -144,6 +169,8 @@ export const updateRecurring = async (userId: string, id: string, data: UpdateRe
         isActive: updated.isActive,
       },
     }, tx);
+
+    await createDueSoonNotification(tx, userId, updated);
 
     return updated;
   });

@@ -26,6 +26,7 @@ import exportsRoutes from './modules/exports/exports.routes';
 import recurringRoutes from './modules/recurring/recurring.routes';
 import auditRoutes from './modules/audit/audit.routes';
 import importsRoutes from './modules/imports/imports.routes';
+import notificationsRoutes from './modules/notifications/notifications.routes';
 import { errorHandler, notFound } from './utils/errors';
 import { healthResponse, readinessResponse } from './utils/openapi';
 import { prisma } from './config/db';
@@ -156,6 +157,7 @@ export function buildApp() {
   app.register(recurringRoutes, { prefix: '/api/recurring' });
   app.register(auditRoutes, { prefix: '/api/audit' });
   app.register(importsRoutes, { prefix: '/api/imports' });
+  app.register(notificationsRoutes, { prefix: '/api/notifications' });
 
   const cronTasks = env.ENABLE_CRON ? initCronJobs() : [];
   if (env.ENABLE_CRON) {
