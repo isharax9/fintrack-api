@@ -7,7 +7,7 @@ Goal: build the first production dashboard and the main transaction creation wor
 - Total account balance.
 - Monthly income.
 - Monthly expenses.
-- Net savings and savings rate.
+- Net cash flow and cash-flow margin.
 - Spending breakdown.
 - Recent transactions.
 - Budget progress.
@@ -39,4 +39,3 @@ Goal: build the first production dashboard and the main transaction creation wor
 - Task 01 API maturity.
 - Task 02 design system.
 - Task 03 app shell.
-

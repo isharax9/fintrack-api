@@ -23,10 +23,18 @@ export const getSummary = async (userId: string, query: ReportQuery) => {
     if (t.type === TransactionType.EXPENSE) totalExpense += Number(t._sum.amount || 0);
   });
 
-  const netSavings = totalIncome - totalExpense;
-  const savingsRate = totalIncome > 0 ? (netSavings / totalIncome) * 100 : 0;
+  const netCashFlow = totalIncome - totalExpense;
+  const cashFlowRate = totalIncome > 0 ? (netCashFlow / totalIncome) * 100 : 0;
 
-  return { totalIncome, totalExpense, netSavings, savingsRate: Math.max(0, savingsRate) };
+  return {
+    totalIncome,
+    totalExpense,
+    netCashFlow,
+    cashFlowRate,
+    // Backward-compatible aliases. The UI should prefer netCashFlow/cashFlowRate.
+    netSavings: netCashFlow,
+    savingsRate: Math.max(0, cashFlowRate),
+  };
 };
 
 export const getByCategory = async (userId: string, query: ReportQuery) => {

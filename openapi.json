@@ -4681,6 +4681,12 @@
                     "totalExpense": {
                       "type": "number"
                     },
+                    "netCashFlow": {
+                      "type": "number"
+                    },
+                    "cashFlowRate": {
+                      "type": "number"
+                    },
                     "netSavings": {
                       "type": "number"
                     },
@@ -4691,6 +4697,8 @@
                   "required": [
                     "totalIncome",
                     "totalExpense",
+                    "netCashFlow",
+                    "cashFlowRate",
                     "netSavings",
                     "savingsRate"
                   ]

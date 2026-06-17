@@ -61,10 +61,13 @@ export const generateSummaryPdf = async (userId: string, month: number, year: nu
 
   const totalIncome = Number(incomeAgg._sum.amount || 0);
   const totalExpense = Number(expenseAgg._sum.amount || 0);
+  const netCashFlow = totalIncome - totalExpense;
+  const cashFlowRate = totalIncome > 0 ? (netCashFlow / totalIncome) * 100 : 0;
 
   doc.fontSize(14).text(`Total Income: $${totalIncome}`);
   doc.text(`Total Expense: $${totalExpense}`);
-  doc.text(`Net Savings: $${totalIncome - totalExpense}`);
+  doc.text(`Net Cash Flow: $${netCashFlow}`);
+  doc.text(`Cash Flow Rate: ${cashFlowRate.toFixed(1)}%`);
   doc.moveDown();
 
   // Draw a simple table of accounts

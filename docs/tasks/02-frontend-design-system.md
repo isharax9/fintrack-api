@@ -238,7 +238,7 @@ Modules:
 - Total account balance.
 - Monthly income.
 - Monthly expenses.
-- Net savings/savings rate.
+- Net cash flow/cash-flow margin.
 - Spending breakdown.
 - Recent transactions.
 - Budget progress.

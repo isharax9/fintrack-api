@@ -631,10 +631,12 @@ export const reportSummaryResponse = {
   properties: {
     totalIncome: money,
     totalExpense: money,
+    netCashFlow: money,
+    cashFlowRate: { type: 'number' },
     netSavings: money,
     savingsRate: { type: 'number' },
   },
-  required: ['totalIncome', 'totalExpense', 'netSavings', 'savingsRate'],
+  required: ['totalIncome', 'totalExpense', 'netCashFlow', 'cashFlowRate', 'netSavings', 'savingsRate'],
 };
 
 export const categoryReportResponse = {
