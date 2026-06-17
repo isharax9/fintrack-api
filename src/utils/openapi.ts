@@ -188,10 +188,8 @@ export const tagResponse = {
     id,
     userId: id,
     name: { type: 'string' },
-    createdAt: dateTime,
-    updatedAt: dateTime,
   },
-  required: ['id', 'userId', 'name', 'createdAt', 'updatedAt'],
+  required: ['id', 'userId', 'name'],
 };
 
 export const transactionResponse = {

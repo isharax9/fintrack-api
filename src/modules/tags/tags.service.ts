@@ -1,6 +1,6 @@
 import { prisma } from '../../config/db';
 import { CreateTagInput, UpdateTagInput } from './tags.schema';
-import { notFound } from '../../utils/errors';
+import { conflict, notFound } from '../../utils/errors';
 import { createAuditLog } from '../audit/audit.service';
 import { RequestMetadata } from '../../utils/requestContext';
 
@@ -12,6 +12,14 @@ export const listTags = async (userId: string) => {
 };
 
 export const createTag = async (userId: string, data: CreateTagInput, metadata: RequestMetadata) => {
+  const existing = await prisma.tag.findFirst({
+    where: { userId, name: { equals: data.name, mode: 'insensitive' } },
+    select: { id: true },
+  });
+  if (existing) {
+    throw conflict('Tag already exists');
+  }
+
   return prisma.$transaction(async (tx) => {
     const tag = await tx.tag.create({
       data: {
@@ -40,6 +48,16 @@ export const updateTag = async (userId: string, id: string, data: UpdateTagInput
 
   if (!tag) {
     throw notFound('Tag not found');
+  }
+
+  if (data.name && data.name.toLowerCase() !== tag.name.toLowerCase()) {
+    const existing = await prisma.tag.findFirst({
+      where: { userId, name: { equals: data.name, mode: 'insensitive' }, NOT: { id } },
+      select: { id: true },
+    });
+    if (existing) {
+      throw conflict('Tag already exists');
+    }
   }
 
   return prisma.$transaction(async (tx) => {
