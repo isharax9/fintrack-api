@@ -71,6 +71,57 @@ export const getByCategory = async (userId: string, query: ReportQuery) => {
   return result.sort((a, b) => b.amount - a.amount);
 };
 
+export const getCategoryFlow = async (userId: string, query: ReportQuery) => {
+  const startDate = new Date(query.year, query.month - 1, 1);
+  const endDate = new Date(query.year, query.month, 0, 23, 59, 59, 999);
+
+  const flows = await prisma.transaction.groupBy({
+    by: ['categoryId', 'type'],
+    where: {
+      userId,
+      date: { gte: startDate, lte: endDate },
+    },
+    _sum: { amount: true },
+  });
+
+  const categoryIds = [...new Set(flows.map((flow) => flow.categoryId))];
+  const categories = await prisma.category.findMany({
+    where: { id: { in: categoryIds }, userId },
+  });
+
+  const byCategory = new Map<string, {
+    categoryId: string;
+    categoryName: string;
+    color: string;
+    icon: string;
+    incomeAmount: number;
+    expenseAmount: number;
+    netAmount: number;
+  }>();
+
+  for (const flow of flows) {
+    const category = categories.find((item) => item.id === flow.categoryId);
+    const current = byCategory.get(flow.categoryId) || {
+      categoryId: flow.categoryId,
+      categoryName: category?.name || 'Unknown',
+      color: category?.color || '#ccc',
+      icon: category?.icon || 'help-circle',
+      incomeAmount: 0,
+      expenseAmount: 0,
+      netAmount: 0,
+    };
+    const amount = Number(flow._sum.amount || 0);
+    if (flow.type === TransactionType.INCOME) current.incomeAmount += amount;
+    if (flow.type === TransactionType.EXPENSE) current.expenseAmount += amount;
+    current.netAmount = current.incomeAmount - current.expenseAmount;
+    byCategory.set(flow.categoryId, current);
+  }
+
+  return Array.from(byCategory.values()).sort((a, b) =>
+    (b.incomeAmount + b.expenseAmount) - (a.incomeAmount + a.expenseAmount),
+  );
+};
+
 export const getTrend = async (userId: string) => {
   const now = new Date();
   const startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1); // 6 months total

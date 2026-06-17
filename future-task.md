@@ -6,8 +6,8 @@ This file is the forward-looking task list for the full FinTrack project. It is 
 
 ## Current Baseline
 
-- Backend: Fastify, TypeScript, Prisma, PostgreSQL, Redis, JWT access tokens, httpOnly refresh cookie rotation, audit logs, notifications, imports, exports, cron jobs, OpenAPI/Swagger, and Vitest coverage.
-- Frontend: Next.js App Router, React 19, Tailwind CSS 4, TanStack Query, Zustand, Axios, generated OpenAPI types, landing page, onboarding flow, auth/dashboard/product routes, notification inbox, CSV import UI, tag management, unit tests, and Playwright smoke tests.
+- Backend: Fastify, TypeScript, Prisma, PostgreSQL, Redis, JWT access tokens, httpOnly refresh cookie rotation, audit logs, notifications, imports, exports, cron jobs, OpenAPI/Swagger, category flow reports, safe category deletes, and Vitest coverage.
+- Frontend: Next.js App Router, React 19, Tailwind CSS 4, TanStack Query, Zustand, Axios, generated OpenAPI types, landing page, onboarding flow, auth/dashboard/product routes, notification inbox, CSV import UI, tag management, category management, funded budget views, unit tests, and Playwright smoke tests.
 - Main product areas already exist: auth, dashboard, transactions, accounts, transfers, categories, tags, budgets, savings, recurring transactions, reports, settings, imports, exports, audit, and notifications.
 
 ## Missing Tasks
@@ -24,6 +24,7 @@ This file is the forward-looking task list for the full FinTrack project. It is 
 8. Add onboarding APIs for first account, first categories/budgets, first savings goal, and empty-state setup progress.
 9. Add notification delivery channels beyond in-app history: email alerts first, then optional push/web notifications.
 10. Add admin/maintenance scripts for expired refresh-session cleanup, old audit log retention, and notification retention.
+11. ✅ Added complete category CRUD safe-delete rules, expanded starter defaults, and a category-flow report endpoint for monthly income/expense/net category totals.
 
 ### Frontend
 
@@ -37,6 +38,7 @@ This file is the forward-looking task list for the full FinTrack project. It is 
 8. Add accessibility checks for dialogs, tables, filters, keyboard navigation, focus order, color contrast, and screen-reader names.
 9. Add responsive visual verification for dashboard, transactions, accounts, budgets, savings, recurring, reports, settings, and the new landing page.
 10. Add app-wide command/search behavior. Current topbar search focuses transaction search, and transaction tag badges can filter the ledger by tag.
+11. ✅ Added Budget Goals category management and category funding/reimbursement display using monthly income assigned to the same category.
 
 ## Improvements Needed
 
@@ -94,6 +96,7 @@ This file is the forward-looking task list for the full FinTrack project. It is 
 13. Category and budget templates by lifestyle or region.
 14. App-wide command palette for quick add, search, navigation, and common actions.
 15. In-app financial insights: overspending patterns, subscription drift, savings opportunities, and unusual transaction alerts.
+16. ✅ Category funding/reimbursement tracking in Budget Goals without mutating stored budget limits.
 
 ### Integrations
 

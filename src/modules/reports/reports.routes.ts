@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import {
   bearerAuth,
+  categoryFlowResponse,
   categoryReportResponse,
   errorResponse,
   monthYearQuery,
@@ -32,6 +33,17 @@ export default async function reportsRoutes(fastify: FastifyInstance) {
       response: { 200: { type: 'array', items: categoryReportResponse }, 400: errorResponse, 401: errorResponse },
     },
     handler: reportsController.byCategory,
+  });
+
+  fastify.get('/category-flow', {
+    schema: {
+      tags: ['Reports'],
+      summary: 'Get monthly income and expense totals by category',
+      security: bearerAuth,
+      querystring: monthYearQuery,
+      response: { 200: { type: 'array', items: categoryFlowResponse }, 400: errorResponse, 401: errorResponse },
+    },
+    handler: reportsController.categoryFlow,
   });
 
   fastify.get('/trend', {

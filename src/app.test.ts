@@ -92,6 +92,7 @@ describe('app OpenAPI', () => {
       ['/api/budget-goals/{id}', 'delete'],
       ['/api/reports/summary', 'get'],
       ['/api/reports/by-category', 'get'],
+      ['/api/reports/category-flow', 'get'],
       ['/api/reports/trend', 'get'],
       ['/api/savings/bucket', 'get'],
       ['/api/savings/goals', 'get'],

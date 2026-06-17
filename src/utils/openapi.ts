@@ -700,6 +700,20 @@ export const categoryReportResponse = {
   required: ['categoryId', 'categoryName', 'color', 'icon', 'amount'],
 };
 
+export const categoryFlowResponse = {
+  type: 'object',
+  properties: {
+    categoryId: id,
+    categoryName: { type: 'string' },
+    color: { type: 'string' },
+    icon: { type: 'string' },
+    incomeAmount: money,
+    expenseAmount: money,
+    netAmount: money,
+  },
+  required: ['categoryId', 'categoryName', 'color', 'icon', 'incomeAmount', 'expenseAmount', 'netAmount'],
+};
+
 export const trendResponse = {
   type: 'object',
   properties: {

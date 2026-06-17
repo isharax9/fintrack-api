@@ -17,6 +17,13 @@ export const byCategory = async (request: FastifyRequest, reply: FastifyReply) =
   return reply.send(result);
 };
 
+export const categoryFlow = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { userId } = getAuthContext(request);
+  const query = reportQuerySchema.parse(request.query);
+  const result = await reportsService.getCategoryFlow(userId, query);
+  return reply.send(result);
+};
+
 export const trend = async (request: FastifyRequest, reply: FastifyReply) => {
   const { userId } = getAuthContext(request);
   const result = await reportsService.getTrend(userId);

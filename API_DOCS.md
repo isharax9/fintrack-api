@@ -169,7 +169,7 @@ CSV transaction imports support preview and commit:
 | PUT | `/api/categories/:id` | Yes | `{ name?, color?, icon? }` |
 | DELETE | `/api/categories/:id` | Yes | none |
 
-Default categories cannot be deleted.
+Default categories are starter templates only. Users can edit or delete unused default categories. Category deletion is blocked when the category is linked to transactions, budget goals, recurring transactions, or recurring execution history; the API returns a clear `400` message naming the linked record types.
 
 ### Tags
 
@@ -231,7 +231,10 @@ Execution history records `SUCCESS`, `SKIPPED`, and `FAILED` outcomes for automa
 | --- | --- | --- | --- |
 | GET | `/api/reports/summary` | Yes | `month`, `year` |
 | GET | `/api/reports/by-category` | Yes | `month`, `year` |
+| GET | `/api/reports/category-flow` | Yes | `month`, `year` |
 | GET | `/api/reports/trend` | Yes | none |
+
+`by-category` remains expense-only for spending charts. `category-flow` returns monthly `incomeAmount`, `expenseAmount`, and `netAmount` by category so the frontend can show category funding/reimbursement context without removing that income from normal income totals.
 
 ### Savings
 
@@ -277,15 +280,25 @@ Notifications are in-app history records. Current producers include budget press
 
 These are seeded for each user on registration:
 
-- Food & Dining
-- Transport
-- Housing
-- Entertainment
-- Shopping
-- Health
-- Education
-- Savings
 - Income
+- Housing
+- Utilities
+- Groceries
+- Dining
+- Transport
+- Fuel
+- Health
+- Insurance
+- Debt
+- Shopping
+- Entertainment
+- Education
+- Travel
+- Subscriptions
+- Savings
+- Gifts
+- Personal Care
+- Taxes
 - Other
 
 ## Error Format

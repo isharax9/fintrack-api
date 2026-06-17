@@ -10,25 +10,13 @@ import crypto from 'crypto';
 import { createAuditLog } from '../audit/audit.service';
 import { hashOptional } from '../../utils/security';
 import { badRequest, conflict, unauthorized } from '../../utils/errors';
+import { defaultCategories } from '../categories/defaultCategories';
 
 type SessionMetadata = {
   userAgent?: string | string[];
   ip?: string;
   requestId?: string;
 };
-
-const defaultCategories = [
-  { name: "Food & Dining",   color: "#FF6B6B", icon: "utensils" },
-  { name: "Transport",       color: "#4ECDC4", icon: "car" },
-  { name: "Housing",         color: "#45B7D1", icon: "home" },
-  { name: "Entertainment",   color: "#96CEB4", icon: "film" },
-  { name: "Shopping",        color: "#FFEAA7", icon: "shopping-bag" },
-  { name: "Health",          color: "#DDA0DD", icon: "heart" },
-  { name: "Education",       color: "#98D8C8", icon: "book" },
-  { name: "Savings",         color: "#7EC8E3", icon: "piggy-bank" },
-  { name: "Income",          color: "#90EE90", icon: "trending-up" },
-  { name: "Other",           color: "#D3D3D3", icon: "more-horizontal" }
-];
 
 const hashValue = (value: string) =>
   crypto.createHash('sha256').update(value).digest('hex');

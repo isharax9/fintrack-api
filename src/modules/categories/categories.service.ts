@@ -70,7 +70,23 @@ export const updateCategory = async (userId: string, id: string, data: UpdateCat
 export const deleteCategory = async (userId: string, id: string, metadata: RequestMetadata) => {
   const category = await prisma.category.findUnique({ where: { id } });
   if (!category || category.userId !== userId) throw notFound('Category not found');
-  if (category.isDefault) throw badRequest('Cannot delete default categories');
+
+  const [transactions, budgetGoals, recurringTransactions, recurringExecutions] = await Promise.all([
+    prisma.transaction.count({ where: { userId, categoryId: id } }),
+    prisma.budgetGoal.count({ where: { userId, categoryId: id } }),
+    prisma.recurringTransaction.count({ where: { userId, categoryId: id } }),
+    prisma.recurringExecution.count({ where: { userId, categoryId: id } }),
+  ]);
+  const linked = [
+    transactions > 0 && 'transactions',
+    budgetGoals > 0 && 'budget goals',
+    recurringTransactions > 0 && 'recurring transactions',
+    recurringExecutions > 0 && 'recurring execution history',
+  ].filter(Boolean) as string[];
+
+  if (linked.length > 0) {
+    throw badRequest(`Category is used by ${linked.join(', ')} and cannot be deleted`);
+  }
 
   await prisma.$transaction(async (tx) => {
     await tx.category.delete({ where: { id } });
