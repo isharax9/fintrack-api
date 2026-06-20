@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "FinTrack Backend MVP",
   "main": "dist/server.js",
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "tsx watch src/bootstrap.ts",
     "build": "tsc",
@@ -11,6 +14,7 @@
     "test:watch": "vitest",
     "security:audit": "npm audit --audit-level=high",
     "ci:verify": "npm run prisma:generate && npx prisma validate && npm run build && npm test && RUN_DB_INTEGRATION=1 npm run test:integration && npm run security:audit",
+    "heroku-postbuild": "npm run prisma:generate && npm run build",
     "start": "node dist/bootstrap.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate:deploy": "prisma migrate deploy",
@@ -39,6 +43,7 @@
     "node-cron": "^4.2.1",
     "pdfkit": "^0.15.0",
     "pdfkit-table": "^0.1.99",
+    "prisma": "^5.22.0",
     "resend": "^6.12.4",
     "tsx": "^4.7.2",
     "typescript": "^5.4.5",
@@ -48,7 +53,6 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/pdfkit": "^0.13.4",
-    "prisma": "^5.22.0",
     "vitest": "^4.1.8"
   },
   "prisma": {
