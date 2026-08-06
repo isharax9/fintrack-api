@@ -15,7 +15,7 @@
 
 **FinTrack API is a typed REST backend for accounts, transactions, transfers, budgets, savings, recurring payments, reporting, imports, exports, notifications, and audit history.**
 
-[Quick start](#-quick-start) · [API documentation](./API_DOCS.md) · [Swagger UI](#-api-documentation) · [Architecture](#-architecture) · [Deployment](./DEPLOYMENT.md) · [Security](./SECURITY.md)
+[Quick start](#quick-start) · [API documentation](./API_DOCS.md) · [Swagger UI](#api-documentation) · [Architecture](#architecture) · [Deployment](./DEPLOYMENT.md) · [Security](./SECURITY.md)
 
 [![GitHub stars](https://img.shields.io/github/stars/isharax9/fintrack-api?style=social)](https://github.com/isharax9/fintrack-api/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/isharax9/fintrack-api?style=social)](https://github.com/isharax9/fintrack-api/network/members)
@@ -27,24 +27,24 @@
 
 ## Table of contents
 
-- [Overview](#-overview)
-- [Features](#-features)
-- [Architecture](#-architecture)
-- [Technology stack](#-technology-stack)
-- [Quick start](#-quick-start)
-- [Configuration](#-configuration)
-- [API documentation](#-api-documentation)
-- [Project structure](#-project-structure)
-- [Development and testing](#-development-and-testing)
-- [Database migrations](#-database-migrations)
-- [Production deployment](#-production-deployment)
-- [Security](#-security)
-- [Observability and operations](#-observability-and-operations)
-- [Documentation](#-documentation)
-- [Contributing](#-contributing)
-- [Project status](#-project-status)
-- [License](#-license)
-- [Author and support](#-author-and-support)
+- [Overview](#overview)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Technology stack](#technology-stack)
+- [Quick start](#quick-start)
+- [Configuration](#configuration)
+- [API documentation](#api-documentation)
+- [Project structure](#project-structure)
+- [Development and testing](#development-and-testing)
+- [Database migrations](#database-migrations)
+- [Production deployment](#production-deployment)
+- [Security](#security)
+- [Observability and operations](#observability-and-operations)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [Project status](#project-status)
+- [License](#license)
+- [Author and support](#author-and-support)
 
 ---
 
@@ -63,7 +63,7 @@ The service currently exposes **72 documented operations across 52 OpenAPI paths
 - **Maintainable modules** — routes, controllers, services, and schemas grouped by business capability.
 
 > [!IMPORTANT]
-> This repository has a production-oriented foundation, but the documented items in [Security](#-security) and [Project status](#-project-status) must be completed and validated for your target environment before a public production launch.
+> This repository has a production-oriented foundation, but the documented items in [Security](#security) and [Project status](#project-status) must be completed and validated for your target environment before a public production launch.
 
 ---
 
@@ -465,7 +465,7 @@ Before a public production release, complete and validate the remaining work tra
 
 ### Reporting a vulnerability
 
-Please do not disclose suspected vulnerabilities in a public issue. Contact the maintainer privately using the channel in [Author and support](#-author-and-support) and include reproduction steps, impact, and any suggested mitigation.
+Please do not disclose suspected vulnerabilities in a public issue. Contact the maintainer privately using the channel in [Author and support](#author-and-support) and include reproduction steps, impact, and any suggested mitigation.
 
 ---
 
