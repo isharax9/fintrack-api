@@ -28,7 +28,7 @@
     "@fastify/multipart": "^10.0.0",
     "@fastify/rate-limit": "^10.3.0",
     "@fastify/swagger": "^9.7.0",
-    "@fastify/swagger-ui": "^5.2.6",
+    "@fastify/swagger-ui": "^6.1.1",
     "@fastify/type-provider-typebox": "^6.1.0",
     "@prisma/client": "^5.22.0",
     "@sinclair/typebox": "^0.32.15",
@@ -59,6 +59,6 @@
     "seed": "tsx prisma/seed.ts"
   },
   "overrides": {
-    "fast-uri": "3.1.2"
+    "fast-uri": "3.1.5"
   }
 }
