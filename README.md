@@ -1,6 +1,6 @@
 <div align="center">
 
-# FinTrack API
+# FinTrack API 🚀
 
 ### Production-oriented personal finance infrastructure for modern applications
 
@@ -27,24 +27,37 @@
 
 ## Table of contents
 
-- [Overview](#overview)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Technology stack](#technology-stack)
-- [Quick start](#quick-start)
-- [Configuration](#configuration)
-- [API documentation](#api-documentation)
-- [Project structure](#project-structure)
-- [Development and testing](#development-and-testing)
-- [Database migrations](#database-migrations)
-- [Production deployment](#production-deployment)
-- [Security](#security)
-- [Observability and operations](#observability-and-operations)
-- [Documentation](#documentation)
-- [Contributing](#contributing)
-- [Project status](#project-status)
-- [License](#license)
-- [Author and support](#author-and-support)
+- [FinTrack API 🚀](#fintrack-api-)
+    - [Production-oriented personal finance infrastructure for modern applications](#production-oriented-personal-finance-infrastructure-for-modern-applications)
+  - [Table of contents](#table-of-contents)
+  - [Overview](#overview)
+    - [Design goals](#design-goals)
+  - [Features](#features)
+  - [Architecture](#architecture)
+    - [Request lifecycle](#request-lifecycle)
+    - [Authentication lifecycle](#authentication-lifecycle)
+  - [Technology stack](#technology-stack)
+  - [Quick start](#quick-start)
+    - [Option 1: Docker Compose](#option-1-docker-compose)
+    - [Option 2: Local Node.js development](#option-2-local-nodejs-development)
+  - [Configuration](#configuration)
+  - [API documentation](#api-documentation)
+    - [API modules](#api-modules)
+    - [Error contract](#error-contract)
+  - [Project structure](#project-structure)
+  - [Development and testing](#development-and-testing)
+    - [Commands](#commands)
+    - [Run the local verification suite](#run-the-local-verification-suite)
+  - [Database migrations](#database-migrations)
+  - [Production deployment](#production-deployment)
+  - [Security](#security)
+    - [Reporting a vulnerability](#reporting-a-vulnerability)
+  - [Observability and operations](#observability-and-operations)
+  - [Documentation](#documentation)
+  - [Contributing](#contributing)
+  - [Project status](#project-status)
+  - [License](#license)
+  - [Author and support](#author-and-support)
 
 ---
 
