@@ -1,6 +1,7 @@
 name: API CI
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches:
