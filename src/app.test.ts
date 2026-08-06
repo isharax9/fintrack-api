@@ -191,6 +191,50 @@ describe('app OpenAPI', () => {
     await app.close();
   });
 
+  it('allows production login CORS preflight requests', async () => {
+    const app = await buildTestApp();
+    const response = await app.inject({
+      method: 'OPTIONS',
+      url: '/api/auth/login',
+      headers: {
+        origin: 'https://fintrack.helasoft.tech',
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'content-type',
+      },
+    });
+
+    expect(response.statusCode).toBe(204);
+    expect(response.headers['access-control-allow-origin']).toBe('https://fintrack.helasoft.tech');
+    expect(response.headers['access-control-allow-credentials']).toBe('true');
+    expect(response.headers['access-control-allow-methods']).toContain('POST');
+    expect(response.headers['access-control-allow-headers']).toContain('content-type');
+
+    await app.close();
+  });
+
+  it('returns forbidden instead of an internal error for disallowed CORS origins', async () => {
+    const app = await buildTestApp();
+    const response = await app.inject({
+      method: 'OPTIONS',
+      url: '/api/auth/login',
+      headers: {
+        origin: 'https://malicious.example',
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'content-type',
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toMatchObject({
+      error: {
+        code: 'FORBIDDEN',
+        message: 'Origin not allowed by CORS',
+      },
+    });
+
+    await app.close();
+  });
+
   it('includes CORS headers on protected API responses', async () => {
     const app = await buildTestApp();
     const response = await app.inject({

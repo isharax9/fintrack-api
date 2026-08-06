@@ -1,10 +1,14 @@
 import fp from 'fastify-plugin';
 import cors from '@fastify/cors';
 import { env } from '../config/env';
+import { forbidden } from '../utils/errors';
+
+const PRODUCTION_FRONTEND_ORIGIN = 'https://fintrack.helasoft.tech';
 
 export default fp(async (fastify) => {
   const allowedOrigins = new Set([
     env.FRONTEND_URL,
+    PRODUCTION_FRONTEND_ORIGIN,
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:3002',
@@ -25,7 +29,7 @@ export default fp(async (fastify) => {
         return;
       }
       fastify.log.warn(`CORS blocked for origin: ${origin}`);
-      cb(new Error('Not allowed by CORS'), false);
+      cb(forbidden('Origin not allowed by CORS'), false);
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
