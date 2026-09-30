@@ -62,6 +62,33 @@ export default async function authRoutes(fastify: FastifyInstance) {
     handler: authController.login,
   });
 
+  const googleAuthResponse = {
+    type: 'object',
+    properties: {
+      accessToken: { type: 'string' },
+      user: userResponse,
+      isNewUser: { type: 'boolean' },
+    },
+    required: ['accessToken', 'user'],
+  };
+
+  fastify.post('/google', {
+    config: { rateLimit: loginRateLimit },
+    schema: {
+      tags: ['Auth'],
+      summary: 'Authenticate with Google ID token',
+      body: {
+        type: 'object',
+        properties: {
+          idToken: { type: 'string', minLength: 1 },
+        },
+        required: ['idToken'],
+      },
+      response: { 200: googleAuthResponse, 400: errorResponse, 401: errorResponse },
+    },
+    handler: authController.googleAuth,
+  });
+
   fastify.post('/refresh', {
     schema: {
       tags: ['Auth'],

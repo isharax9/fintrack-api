@@ -1,12 +1,16 @@
 import { z } from 'zod';
 import { TransactionType } from '@prisma/client';
 
+const dateSchema = z.string().refine((val) => !Number.isNaN(Date.parse(val)), {
+  message: 'Invalid date format',
+});
+
 export const createTransactionSchema = z.object({
   title: z.string().min(1),
   amount: z.number().positive(),
   type: z.nativeEnum(TransactionType),
   categoryId: z.string().cuid(),
-  date: z.string().datetime(),
+  date: dateSchema,
   notes: z.string().optional(),
   accountId: z.string().cuid().optional(),
   tagIds: z.array(z.string().cuid()).optional(),
@@ -22,8 +26,8 @@ export const transactionQuerySchema = z.object({
   categoryId: z.string().cuid().optional(),
   accountId: z.string().cuid().optional(),
   tagId: z.string().cuid().optional(),
-  from: z.string().datetime().optional(),
-  to: z.string().datetime().optional(),
+  from: dateSchema.optional(),
+  to: dateSchema.optional(),
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(10),
 });

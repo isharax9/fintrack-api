@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
     user: {
       findUnique: vi.fn(),
       update: vi.fn(),
+      create: vi.fn(),
     },
     category: {
       createMany: vi.fn(),
@@ -236,5 +237,113 @@ describe('auth service sessions', () => {
       { ...sessions[0], current: false },
       { ...sessions[1], current: true },
     ]);
+  });
+
+  describe('loginWithGoogle', () => {
+    it('authenticates an existing user successfully', async () => {
+      const authService = await import('./auth.service');
+      const mockUser = {
+        id: 'user_existing',
+        name: 'Existing User',
+        email: 'user@example.com',
+        password: 'hashed-password',
+        currency: 'USD',
+      };
+      mocks.prisma.user.findUnique.mockResolvedValue(mockUser);
+      mocks.prisma.refreshSession.create.mockResolvedValue({ id: 'session_g1' });
+      mocks.signAccessToken.mockReturnValue('access_g1');
+      mocks.signRefreshToken.mockReturnValue('refresh_g1');
+
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          iss: 'https://accounts.google.com',
+          sub: 'google_123',
+          email: 'user@example.com',
+          email_verified: 'true',
+          name: 'Existing User',
+          exp: Math.floor(Date.now() / 1000) + 3600,
+        }),
+      } as any);
+
+      const result = await authService.loginWithGoogle('valid-token', { ip: '127.0.0.1' });
+
+      expect(result.isNewUser).toBe(false);
+      expect(result.accessToken).toBe('access_g1');
+      expect(result.refreshToken).toBe('refresh_g1');
+      expect(result.user.email).toBe('user@example.com');
+      expect((result.user as any).password).toBeUndefined();
+    });
+
+    it('creates a new user with default categories if user does not exist', async () => {
+      const authService = await import('./auth.service');
+      const newUser = {
+        id: 'user_new',
+        name: 'New Google User',
+        email: 'newuser@example.com',
+        password: 'generated-hash',
+        currency: 'USD',
+      };
+      mocks.prisma.user.findUnique.mockResolvedValue(null);
+      mocks.prisma.user.create.mockResolvedValue(newUser);
+      mocks.prisma.refreshSession.create.mockResolvedValue({ id: 'session_g2' });
+      mocks.signAccessToken.mockReturnValue('access_g2');
+      mocks.signRefreshToken.mockReturnValue('refresh_g2');
+      mocks.hashPassword.mockResolvedValue('generated-hash');
+
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          iss: 'https://accounts.google.com',
+          sub: 'google_456',
+          email: 'newuser@example.com',
+          email_verified: true,
+          name: 'New Google User',
+          exp: Math.floor(Date.now() / 1000) + 3600,
+        }),
+      } as any);
+
+      const result = await authService.loginWithGoogle('new-user-token');
+
+      expect(result.isNewUser).toBe(true);
+      expect(result.user.id).toBe('user_new');
+      expect(mocks.prisma.category.createMany).toHaveBeenCalled();
+      expect(mocks.createAuditLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'AUTH_GOOGLE_REGISTER',
+        }),
+      );
+    });
+
+    it('throws unauthorized if Google token verification fails', async () => {
+      const authService = await import('./auth.service');
+
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error_description: 'Token expired' }),
+      } as any);
+
+      await expect(authService.loginWithGoogle('bad-token')).rejects.toMatchObject({
+        statusCode: 401,
+      });
+    });
+
+    it('throws unauthorized if email is unverified', async () => {
+      const authService = await import('./auth.service');
+
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          iss: 'https://accounts.google.com',
+          sub: 'google_789',
+          email: 'unverified@example.com',
+          email_verified: 'false',
+        }),
+      } as any);
+
+      await expect(authService.loginWithGoogle('unverified-token')).rejects.toMatchObject({
+        statusCode: 401,
+      });
+    });
   });
 });

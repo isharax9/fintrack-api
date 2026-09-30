@@ -2,6 +2,13 @@ export const bearerAuth = [{ bearerAuth: [] }];
 
 const id = { type: 'string', minLength: 1 };
 const dateTime = { type: 'string', format: 'date-time' };
+const dateOrDateTime = {
+  anyOf: [
+    { type: 'string', format: 'date-time' },
+    { type: 'string', format: 'date' },
+    { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}' },
+  ],
+};
 const money = { type: 'number' };
 const nullableString = { type: 'string', nullable: true };
 
@@ -461,7 +468,7 @@ export const createTransactionBody = {
     amount: { type: 'number', exclusiveMinimum: 0 },
     type: { type: 'string', enum: ['INCOME', 'EXPENSE'] },
     categoryId: id,
-    date: dateTime,
+    date: dateOrDateTime,
     notes: { type: 'string' },
     accountId: id,
     tagIds: { type: 'array', items: id },

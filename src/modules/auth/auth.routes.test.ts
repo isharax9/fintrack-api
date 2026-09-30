@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   verifyAccessToken: vi.fn(),
   register: vi.fn(),
   login: vi.fn(),
+  loginWithGoogle: vi.fn(),
   refresh: vi.fn(),
   logout: vi.fn(),
   logoutAll: vi.fn(),
@@ -23,6 +24,7 @@ vi.mock('./auth.service', () => ({
   logoutAll: mocks.logoutAll,
   register: mocks.register,
   login: mocks.login,
+  loginWithGoogle: mocks.loginWithGoogle,
   refresh: mocks.refresh,
   logoutOther: vi.fn(),
   listSessions: vi.fn(),
@@ -189,6 +191,48 @@ describe('auth routes', () => {
       requestId: 'req-1',
     });
     expect(mocks.logout).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it('authenticates with Google ID token and sets refresh cookie', async () => {
+    const app = await buildTestApp();
+    mocks.loginWithGoogle.mockResolvedValue({
+      accessToken: 'google-access-token',
+      refreshToken: 'google-refresh-token',
+      user: {
+        id: 'user_google',
+        name: 'Google User',
+        email: 'google@example.com',
+        currency: 'USD',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      isNewUser: true,
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/auth/google',
+      payload: {
+        idToken: 'valid-google-id-token',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['set-cookie']).toContain('fintrack_refresh=google-refresh-token');
+    expect(response.json()).toEqual({
+      accessToken: 'google-access-token',
+      user: expect.objectContaining({
+        id: 'user_google',
+        email: 'google@example.com',
+      }),
+      isNewUser: true,
+    });
+    expect(mocks.loginWithGoogle).toHaveBeenCalledWith(
+      'valid-google-id-token',
+      expect.any(Object),
+    );
 
     await app.close();
   });

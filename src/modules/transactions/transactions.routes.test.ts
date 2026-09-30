@@ -95,6 +95,52 @@ describe('transactions routes', () => {
     await app.close();
   });
 
+  it('accepts date strings in YYYY-MM-DD format as well as full ISO datetime', async () => {
+    const app = await buildTestApp();
+    mocks.verifyAccessToken.mockReturnValue({ userId: 'user_1', sessionId: 'session_1' });
+    mocks.createTransaction.mockResolvedValue({
+      id: validCuid,
+      userId: 'user_1',
+      categoryId: validCuid,
+      title: 'Groceries',
+      amount: 50,
+      type: 'EXPENSE',
+      date: new Date('2026-10-01').toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/transactions',
+      headers: {
+        authorization: 'Bearer access-token',
+      },
+      payload: {
+        title: 'Groceries',
+        amount: 50,
+        type: 'EXPENSE',
+        categoryId: validCuid,
+        date: '2026-10-01',
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(mocks.createTransaction).toHaveBeenCalledWith(
+      'user_1',
+      expect.objectContaining({
+        title: 'Groceries',
+        amount: 50,
+        type: 'EXPENSE',
+        categoryId: validCuid,
+        date: '2026-10-01',
+      }),
+      expect.any(Object),
+    );
+
+    await app.close();
+  });
+
   it('passes search and tag filters to the transaction service', async () => {
     const app = await buildTestApp();
     mocks.verifyAccessToken.mockReturnValue({ userId: 'user_1', sessionId: 'session_1' });

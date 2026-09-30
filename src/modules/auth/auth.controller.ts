@@ -2,6 +2,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { getAuthContext, getRequestMetadata } from '../../utils/requestContext';
 import {
   forgotPasswordSchema,
+  googleAuthSchema,
   loginSchema,
   registerSchema,
   resetPasswordSchema,
@@ -22,6 +23,14 @@ export const register = async (request: FastifyRequest, reply: FastifyReply) => 
 export const login = async (request: FastifyRequest, reply: FastifyReply) => {
   const data = loginSchema.parse(request.body);
   const result = await authService.login(data, getRequestMetadata(request));
+  setRefreshCookie(reply, result.refreshToken);
+  const { refreshToken: _refreshToken, ...body } = result;
+  return reply.send(body);
+};
+
+export const googleAuth = async (request: FastifyRequest, reply: FastifyReply) => {
+  const data = googleAuthSchema.parse(request.body);
+  const result = await authService.loginWithGoogle(data.idToken, getRequestMetadata(request));
   setRefreshCookie(reply, result.refreshToken);
   const { refreshToken: _refreshToken, ...body } = result;
   return reply.send(body);

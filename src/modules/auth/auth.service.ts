@@ -138,6 +138,109 @@ export const login = async (input: LoginInput, metadata: SessionMetadata = {}) =
   return { ...tokens, user: serializeUser(user) };
 };
 
+export interface GoogleTokenPayload {
+  iss?: string;
+  sub?: string;
+  aud?: string;
+  email?: string;
+  email_verified?: string | boolean;
+  name?: string;
+  picture?: string;
+  exp?: string | number;
+  error_description?: string;
+}
+
+export const loginWithGoogle = async (idToken: string, metadata: SessionMetadata = {}) => {
+  let payload: GoogleTokenPayload;
+
+  try {
+    const response = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken.trim())}`,
+    );
+
+    if (!response.ok) {
+      const errorData = (await response.json().catch(() => ({}))) as { error_description?: string };
+      throw unauthorized(errorData.error_description || 'Invalid or expired Google token');
+    }
+
+    payload = (await response.json()) as GoogleTokenPayload;
+  } catch (err: unknown) {
+    if (err instanceof Error && 'statusCode' in err) throw err;
+    throw unauthorized('Could not verify Google token');
+  }
+
+  // Validate issuer
+  const validIssuers = ['accounts.google.com', 'https://accounts.google.com'];
+  if (!payload.iss || !validIssuers.includes(payload.iss)) {
+    throw unauthorized('Invalid Google token issuer');
+  }
+
+  // Validate audience if client ID is configured
+  if (env.GOOGLE_CLIENT_ID && payload.aud !== env.GOOGLE_CLIENT_ID) {
+    throw unauthorized('Google client ID mismatch');
+  }
+
+  // Validate email and verification status
+  if (!payload.email) {
+    throw unauthorized('Google account has no associated email');
+  }
+
+  const isVerified = payload.email_verified === true || payload.email_verified === 'true';
+  if (!isVerified) {
+    throw unauthorized('Google account email is not verified');
+  }
+
+  // Check token expiration
+  if (payload.exp && Number(payload.exp) * 1000 < Date.now()) {
+    throw unauthorized('Google token has expired');
+  }
+
+  const normalizedEmail = payload.email.trim().toLowerCase();
+  let isNewUser = false;
+  let user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+
+  if (!user) {
+    isNewUser = true;
+    const randomPassword = crypto.randomBytes(32).toString('hex');
+    const hashedPassword = await hashPassword(randomPassword);
+    const displayName = payload.name?.trim() || normalizedEmail.split('@')[0];
+
+    user = await prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          name: displayName,
+          email: normalizedEmail,
+          password: hashedPassword,
+        },
+      });
+
+      await tx.category.createMany({
+        data: defaultCategories.map((c) => ({
+          ...c,
+          userId: created.id,
+          isDefault: true,
+        })),
+      });
+
+      return created;
+    });
+  }
+
+  const tokens = await createSessionTokens(user.id, metadata);
+
+  await createAuditLog({
+    userId: user.id,
+    action: isNewUser ? 'AUTH_GOOGLE_REGISTER' : 'AUTH_GOOGLE_LOGIN',
+    entityType: 'User',
+    entityId: user.id,
+    ip: metadata.ip,
+    userAgent: metadata.userAgent,
+    requestId: metadata.requestId,
+  });
+
+  return { ...tokens, user: serializeUser(user), isNewUser };
+};
+
 export const refresh = async (refreshToken: string, metadata: SessionMetadata = {}) => {
   const payload = verifyRefreshToken(refreshToken);
   if (!payload.sessionId) {
