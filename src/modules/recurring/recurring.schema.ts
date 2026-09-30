@@ -14,7 +14,12 @@ export const createRecurringSchema = z.object({
   type: z.nativeEnum(TransactionType),
   categoryId: z.string().cuid(),
   frequency: z.nativeEnum(cronFrequency),
-  nextDate: z.string().datetime(),
+  // Accept either "YYYY-MM-DD" or full ISO 8601 datetime; coerce to full datetime for consistent DB storage.
+  nextDate: z
+    .string()
+    .min(1, 'Date is required')
+    .transform((val) => (val.includes('T') ? val : `${val}T00:00:00.000Z`))
+    .pipe(z.string().datetime()),
   notes: z.string().optional(),
   isActive: z.boolean().optional().default(true),
 });

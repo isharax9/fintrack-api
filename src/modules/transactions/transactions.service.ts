@@ -289,7 +289,12 @@ export const smartParseTransaction = async (userId: string, input: string) => {
   }
 
   // 2. Determine Type (INCOME vs EXPENSE)
-  const isIncome = /\b(salary|income|earned|received|got paid|deposit|freelance|dividend|bonus)\b/i.test(cleanInput);
+  // Check explicit income signals: salary keywords OR transfer-in patterns ("got money from", "received from", "sent me")
+  const incomeKeywords =
+    /\b(salary|income|earned|received|got paid|deposit|freelance|dividend|bonus|allowance|refund)\b/i;
+  const transferInPattern =
+    /\b(got money|received money|money from|sent me|paid me|transfer from|transferred from|cashback|reimbursed)\b/i;
+  const isIncome = incomeKeywords.test(cleanInput) || transferInPattern.test(cleanInput);
   const type: 'INCOME' | 'EXPENSE' = isIncome ? 'INCOME' : 'EXPENSE';
 
   // 3. Extract Date
@@ -370,7 +375,18 @@ export const smartParseTransaction = async (userId: string, input: string) => {
   }
 
   if (!matchedCategory && categories.length > 0) {
-    matchedCategory = categories[0];
+    // Prefer a type-appropriate fallback: income categories for INCOME, expense categories for EXPENSE
+    const incomeCategories = categories.filter((c) =>
+      /income|salary|revenue|earnings/i.test(c.name),
+    );
+    const expenseCategories = categories.filter(
+      (c) => !/income|salary|revenue|earnings/i.test(c.name),
+    );
+    if (type === 'INCOME') {
+      matchedCategory = incomeCategories[0] || categories[0];
+    } else {
+      matchedCategory = expenseCategories[0] || categories[0];
+    }
   }
 
   // 5. Match Account

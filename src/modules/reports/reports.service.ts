@@ -274,8 +274,9 @@ export const getSafeToSpend = async (userId: string) => {
   const billsBeforeSalary = upcomingBills.reduce((sum, b) => sum + b.amount, 0);
 
   // 5. Budget commitments (Envelopes)
-  const currentMonthNum = now.getMonth() + 1;
-  const currentYearNum = now.getFullYear();
+  // Use UTC month/year to match Heroku (UTC) and avoid timezone drift between localhost and production.
+  const currentMonthNum = now.getUTCMonth() + 1;
+  const currentYearNum = now.getUTCFullYear();
   const { startDate: startOfMonthDate, endDate: endOfMonthDate } = getMonthDateRangeUTC(currentYearNum, currentMonthNum);
 
   const budgetGoals = await prisma.budgetGoal.findMany({
