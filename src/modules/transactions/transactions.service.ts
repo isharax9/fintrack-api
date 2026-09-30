@@ -1,4 +1,5 @@
 import { prisma } from '../../config/db';
+import { env } from '../../config/env';
 import { CreateTransactionInput, UpdateTransactionInput, TransactionQuery } from './transactions.schema';
 import { Prisma } from '@prisma/client';
 import { createAuditLog } from '../audit/audit.service';
@@ -266,60 +267,17 @@ export const deleteTransaction = async (userId: string, id: string, metadata: Re
   });
 };
 
-export const smartParseTransaction = async (userId: string, input: string) => {
-  const cleanInput = input.trim();
-  const [categories, accounts, user] = await Promise.all([
-    prisma.category.findMany({ where: { userId } }),
-    prisma.account.findMany({ where: { userId } }),
-    prisma.user.findUnique({ where: { id: userId }, select: { currency: true } }),
-  ]);
-  const currency = user?.currency || 'USD';
+export const parseWithOfflineAlgorithm = (
+  cleanInput: string,
+  categories: Array<{ id: string; name: string; color: string; icon: string }>,
+  accounts: Array<{ id: string; name: string; type: string }>,
+  currency = 'LKR',
+) => {
   const lowerInput = cleanInput.toLowerCase();
-
-  // ── 1. Try Google Gemini AI (if GEMINI_API_KEY is configured) ──
-  const geminiResult = await parseWithGemini(cleanInput, categories, accounts, currency);
-  if (geminiResult && geminiResult.amount > 0) {
-    const matchedCategory = categories.find(
-      (c) => c.name.toLowerCase() === geminiResult.categoryName.toLowerCase(),
-    ) || categories.find(
-      (c) =>
-        c.name.toLowerCase().includes(geminiResult.categoryName.toLowerCase()) ||
-        geminiResult.categoryName.toLowerCase().includes(c.name.toLowerCase()),
-    );
-
-    let matchedAccount;
-    if (geminiResult.accountName) {
-      matchedAccount = accounts.find((a) =>
-        a.name.toLowerCase().includes(geminiResult.accountName!.toLowerCase()),
-      );
-    }
-
-    const fallbackCat = geminiResult.type === 'INCOME'
-      ? categories.find((c) => /income|salary|allowance|gift/i.test(c.name)) || categories[0]
-      : categories.find((c) => !/income|salary|allowance|gift/i.test(c.name)) || categories[0];
-
-    const category = matchedCategory || fallbackCat;
-    const account = matchedAccount || accounts[0];
-
-    return {
-      title: geminiResult.title,
-      amount: geminiResult.amount,
-      type: geminiResult.type,
-      categoryId: category?.id || '',
-      categoryName: category?.name || 'General',
-      categoryColor: category?.color || '#3b82f6',
-      categoryIcon: category?.icon || 'receipt',
-      accountId: account?.id,
-      accountName: account?.name,
-      date: geminiResult.date || new Date().toISOString().split('T')[0],
-      currency,
-      rawText: cleanInput,
-      source: 'gemini' as const,
-      confidence: geminiResult.confidence || 0.98,
-    };
-  }
-
-  // ── 2. Offline Algorithmic NLP Engine (Runs without internet or LLM) ──
+  let amountScore = 0;
+  let categoryScore = 0;
+  let typeScore = 0;
+  let titleScore = 0;
 
   // A. Extract Amount (Supports LKR, Rs, $, €, 3000/=, 3000/-, 400k, 12,500.00, 6500)
   let amount = 0;
@@ -333,6 +291,9 @@ export const smartParseTransaction = async (userId: string, input: string) => {
     } else {
       amount = parseFloat(rawNum);
     }
+    if (amount > 0) {
+      amountScore = 0.35;
+    }
   }
 
   // B. Determine Type (INCOME vs EXPENSE)
@@ -340,8 +301,23 @@ export const smartParseTransaction = async (userId: string, input: string) => {
     /\b(salary|income|earned|received|got paid|deposit|freelance|dividend|bonus|allowance|refund|cashback|reimbursed|pocket money|gift)\b/i;
   const transferInPattern =
     /\b(got money|received money|money from|sent me|paid me|transfer from|transferred from|from mom|from dad|from parents)\b/i;
+  const expenseKeywords =
+    /\b(spent|paid|bought|cost|fee|bill|recharge|order|subscription)\b/i;
+
   const isIncome = incomeKeywords.test(cleanInput) || transferInPattern.test(cleanInput);
-  const type: 'INCOME' | 'EXPENSE' = isIncome ? 'INCOME' : 'EXPENSE';
+  const isExplicitExpense = expenseKeywords.test(cleanInput);
+
+  let type: 'INCOME' | 'EXPENSE' = 'EXPENSE';
+  if (isIncome) {
+    type = 'INCOME';
+    typeScore = 0.20;
+  } else if (isExplicitExpense) {
+    type = 'EXPENSE';
+    typeScore = 0.20;
+  } else {
+    type = 'EXPENSE';
+    typeScore = 0.08; // default guess without explicit verb
+  }
 
   // C. Extract Date
   let date = new Date();
@@ -355,16 +331,16 @@ export const smartParseTransaction = async (userId: string, input: string) => {
   let matchedCategory: (typeof categories)[0] | undefined;
 
   if (type === 'INCOME') {
-    // If incoming money from family/friends or allowance, prioritize specific Allowance/Gift categories before generic Income
     const isFamilyGift = /\b(mom|dad|parents|brother|sister|friend|gift|allowance|pocket)\b/i.test(cleanInput);
     if (isFamilyGift) {
       matchedCategory = categories.find((c) => /allowance|gift|family|pocket/i.test(c.name));
+      if (matchedCategory) categoryScore = 0.35;
     }
     if (!matchedCategory) {
       matchedCategory = categories.find((c) => /income|salary|revenue|freelance|earnings/i.test(c.name));
+      if (matchedCategory) categoryScore = 0.30;
     }
   } else {
-    // Expense keyword dictionary with local Sri Lankan & international merchants/variations
     const keywordMap: Record<string, string[]> = {
       Food: [
         'keells',
@@ -472,21 +448,38 @@ export const smartParseTransaction = async (userId: string, input: string) => {
       ],
     };
 
-    // First check direct category name matches
+    // Direct name match
     matchedCategory = categories.find((cat) => lowerInput.includes(cat.name.toLowerCase()));
+    if (matchedCategory) {
+      categoryScore = 0.35;
+    } else {
+      const categoryRegexMap: Record<string, RegExp> = {
+        Food: /food|groceries|dining|restaurant|supermarket|market/i,
+        Transportation: /transport|fuel|travel|taxi|vehicle/i,
+        Utilities: /utility|utilities|bill|bills|electricity|water|telecom/i,
+        Housing: /housing|rent|home|apartment/i,
+        Subscriptions: /subscription|subscriptions|entertainment|streaming/i,
+        Healthcare: /health|healthcare|medical|medicine|pharmacy/i,
+        Shopping: /shopping|electronics|gadget|retail/i,
+      };
 
-    // Next check merchant/keyword mappings
-    if (!matchedCategory) {
+      // Keyword dictionary match
       for (const [catName, keywords] of Object.entries(keywordMap)) {
         if (keywords.some((k) => lowerInput.includes(k))) {
-          matchedCategory = categories.find((c) => c.name.toLowerCase().includes(catName.toLowerCase()));
-          if (matchedCategory) break;
+          const pattern = categoryRegexMap[catName];
+          matchedCategory = categories.find((c) =>
+            pattern ? pattern.test(c.name) : c.name.toLowerCase().includes(catName.toLowerCase())
+          );
+          if (matchedCategory) {
+            categoryScore = 0.30;
+            break;
+          }
         }
       }
     }
   }
 
-  // Type-appropriate fallback if still not matched
+  // Type-appropriate fallback if still not matched (categoryScore remains 0)
   if (!matchedCategory && categories.length > 0) {
     const incomeCategories = categories.filter((c) =>
       /income|salary|revenue|earnings|allowance|gift/i.test(c.name),
@@ -517,7 +510,6 @@ export const smartParseTransaction = async (userId: string, input: string) => {
   // F. Extract Title / Merchant
   let title = '';
 
-  // Pattern: "got money from [Person] [Amount] for [Reason]"
   const incomePersonMatch = cleanInput.match(
     /(?:got money|received money|money)\s+from\s+([a-zA-Z\s]+?)(?:\s+[0-9k,.]+|\s+for\s+([a-zA-Z\s]+)|$)/i,
   );
@@ -525,33 +517,53 @@ export const smartParseTransaction = async (userId: string, input: string) => {
     const person = incomePersonMatch[1].trim();
     const reason = incomePersonMatch[2]?.trim();
     title = reason ? `${person} (${reason})` : `From ${person}`;
+    titleScore = 0.10;
   }
 
-  // Pattern: "at [Merchant]" or "from [Merchant]"
   if (!title) {
     const merchantMatch = cleanInput.match(/\b(?:at|from)\s+([a-zA-Z0-9\s]+?)(?:\s+today|\s+yesterday|\s+[0-9]|$)/i);
     if (merchantMatch && merchantMatch[1]) {
       const candidate = merchantMatch[1].trim();
       if (candidate.length > 2 && !/^(lkr|rs|usd|cash|bank|card)$/i.test(candidate)) {
         title = candidate;
+        titleScore = 0.08;
       }
     }
   }
 
-  // Known merchant canonicalizer
   const testStr = (title || cleanInput).toLowerCase();
-  if (/\b(keells|keels)\b/i.test(testStr)) title = 'Keells';
-  else if (/\b(food city)\b/i.test(testStr)) title = 'Cargills Food City';
-  else if (/\b(cargills)\b/i.test(testStr)) title = 'Cargills';
-  else if (/\b(pickme|pick me)\b/i.test(testStr)) title = 'PickMe';
-  else if (/\buber\b/i.test(testStr)) title = 'Uber';
-  else if (/\bslt\b/i.test(testStr)) title = 'SLT';
-  else if (/\bdialog\b/i.test(testStr)) title = 'Dialog';
-  else if (/\bmobitel\b/i.test(testStr)) title = 'Mobitel';
-  else if (/\bceb\b/i.test(testStr)) title = 'CEB';
-  else if (/\bdaraz\b/i.test(testStr)) title = 'Daraz';
+  if (/\b(keells|keels)\b/i.test(testStr)) {
+    title = 'Keells';
+    titleScore = 0.10;
+  } else if (/\b(food city)\b/i.test(testStr)) {
+    title = 'Cargills Food City';
+    titleScore = 0.10;
+  } else if (/\b(cargills)\b/i.test(testStr)) {
+    title = 'Cargills';
+    titleScore = 0.10;
+  } else if (/\b(pickme|pick me)\b/i.test(testStr)) {
+    title = 'PickMe';
+    titleScore = 0.10;
+  } else if (/\buber\b/i.test(testStr)) {
+    title = 'Uber';
+    titleScore = 0.10;
+  } else if (/\bslt\b/i.test(testStr)) {
+    title = 'SLT';
+    titleScore = 0.10;
+  } else if (/\bdialog\b/i.test(testStr)) {
+    title = 'Dialog';
+    titleScore = 0.10;
+  } else if (/\bmobitel\b/i.test(testStr)) {
+    title = 'Mobitel';
+    titleScore = 0.10;
+  } else if (/\bceb\b/i.test(testStr)) {
+    title = 'CEB';
+    titleScore = 0.10;
+  } else if (/\bdaraz\b/i.test(testStr)) {
+    title = 'Daraz';
+    titleScore = 0.10;
+  }
 
-  // Fallback: strip stop words and numbers
   if (!title) {
     title = cleanInput
       .replace(
@@ -564,6 +576,7 @@ export const smartParseTransaction = async (userId: string, input: string) => {
       )
       .replace(/\s+/g, ' ')
       .trim();
+    if (title.length >= 2) titleScore = 0.05;
   }
 
   if (!title || title.length < 2) {
@@ -574,6 +587,8 @@ export const smartParseTransaction = async (userId: string, input: string) => {
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
       .join(' ');
   }
+
+  const confidence = Math.min(1.0, Math.round((amountScore + categoryScore + typeScore + titleScore) * 100) / 100);
 
   return {
     title,
@@ -589,8 +604,78 @@ export const smartParseTransaction = async (userId: string, input: string) => {
     currency,
     rawText: cleanInput,
     source: 'algorithm' as const,
-    confidence: 0.95,
+    confidence,
   };
+};
+
+export const smartParseTransaction = async (userId: string, input: string) => {
+  const cleanInput = input.trim();
+  const [categories, accounts, user] = await Promise.all([
+    prisma.category.findMany({ where: { userId } }),
+    prisma.account.findMany({ where: { userId } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { currency: true } }),
+  ]);
+  const currency = user?.currency || 'USD';
+
+  // ── Step 1: Run the fast local offline algorithm ──
+  const offlineParsed = parseWithOfflineAlgorithm(cleanInput, categories, accounts, currency);
+
+  // ── Step 2: Check Confidence Score threshold (Confidence >= 0.85) ──
+  // If the local algorithm is confident (amount found, category recognized, entity identified),
+  // return immediately with zero network latency and zero LLM cost!
+  if (offlineParsed.amount > 0 && offlineParsed.confidence >= 0.85) {
+    return offlineParsed;
+  }
+
+  // ── Step 3: Confidence < 0.85 -> Escalate to Google Gemini AI ──
+  // Disambiguate complex, messy, or slang inputs using Google Gemini 2.5 Flash
+  const apiKey = env.GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+  if (apiKey && apiKey.trim() !== '') {
+    const geminiResult = await parseWithGemini(cleanInput, categories, accounts, currency);
+    if (geminiResult && geminiResult.amount > 0) {
+      const matchedCategory = categories.find(
+        (c) => c.name.toLowerCase() === geminiResult.categoryName.toLowerCase(),
+      ) || categories.find(
+        (c) =>
+          c.name.toLowerCase().includes(geminiResult.categoryName.toLowerCase()) ||
+          geminiResult.categoryName.toLowerCase().includes(c.name.toLowerCase()),
+      );
+
+      let matchedAccount;
+      if (geminiResult.accountName) {
+        matchedAccount = accounts.find((a) =>
+          a.name.toLowerCase().includes(geminiResult.accountName!.toLowerCase()),
+        );
+      }
+
+      const fallbackCat = geminiResult.type === 'INCOME'
+        ? categories.find((c) => /income|salary|allowance|gift/i.test(c.name)) || categories[0]
+        : categories.find((c) => !/income|salary|allowance|gift/i.test(c.name)) || categories[0];
+
+      const category = matchedCategory || fallbackCat;
+      const account = matchedAccount || accounts[0];
+
+      return {
+        title: geminiResult.title,
+        amount: geminiResult.amount,
+        type: geminiResult.type,
+        categoryId: category?.id || '',
+        categoryName: category?.name || 'General',
+        categoryColor: category?.color || '#3b82f6',
+        categoryIcon: category?.icon || 'receipt',
+        accountId: account?.id,
+        accountName: account?.name,
+        date: geminiResult.date || new Date().toISOString().split('T')[0],
+        currency,
+        rawText: cleanInput,
+        source: 'gemini' as const,
+        confidence: geminiResult.confidence || 0.98,
+      };
+    }
+  }
+
+  // Fallback: return offline algorithm result if Gemini is not configured or offline
+  return offlineParsed;
 };
 
 export const executeAiCommand = async (userId: string, command: string, metadata: RequestMetadata) => {

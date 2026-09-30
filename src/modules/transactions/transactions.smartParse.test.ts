@@ -121,4 +121,21 @@ describe('smartParseTransaction', () => {
     expect(result.categoryId).toBe('cat_food');
     expect(result.title.toLowerCase()).toContain('keells');
   });
+
+  it('keeps source as "algorithm" when confidence >= 0.85', async () => {
+    const { smartParseTransaction } = await import('./transactions.service');
+
+    mocks.prisma.category.findMany.mockResolvedValue([
+      { id: 'cat_food', name: 'Food', color: '#f59e0b', icon: 'utensils' },
+    ]);
+    mocks.prisma.account.findMany.mockResolvedValue([
+      { id: 'acc_cash', name: 'Cash', type: 'CASH' },
+    ]);
+    mocks.prisma.user.findUnique.mockResolvedValue({ currency: 'LKR' });
+
+    const result = await smartParseTransaction('user_1', 'Spent 2500 at Keells today in cash');
+
+    expect(result.confidence).toBeGreaterThanOrEqual(0.85);
+    expect(result.source).toBe('algorithm');
+  });
 });
