@@ -6,7 +6,7 @@ on:
   push:
     branches:
       - main
-      - develop
+      - dev
 
 jobs:
   verify:
@@ -65,5 +65,20 @@ jobs:
       - name: Apply Prisma migrations to a fresh database
         run: npx prisma migrate deploy
 
-      - name: Verify API
-        run: npm run ci:verify
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+
+      - name: Build
+        run: npm run build
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Integration tests
+        run: RUN_DB_INTEGRATION=1 npm run test:integration
+
+      - name: Security audit
+        run: npm audit --audit-level=high

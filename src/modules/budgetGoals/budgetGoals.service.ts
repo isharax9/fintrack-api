@@ -73,28 +73,38 @@ export const createBudgetGoal = async (userId: string, data: CreateBudgetGoalInp
 
   if (existing) throw conflict('Budget goal already exists for this category in this month');
 
-  return prisma.$transaction(async (tx) => {
-    const goal = await tx.budgetGoal.create({
-      data: {
-        ...data,
-        userId
-      },
-      include: { category: true }
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const goal = await tx.budgetGoal.create({
+        data: {
+          ...data,
+          userId
+        },
+        include: { category: true }
+      });
+
+      await createAuditLog({
+        userId,
+        action: 'BUDGET_GOAL_CREATED',
+        entityType: 'BudgetGoal',
+        entityId: goal.id,
+        ...metadata,
+        metadata: { categoryId: goal.categoryId, month: goal.month, year: goal.year, limitAmount: goal.limitAmount.toString() },
+      }, tx);
+
+      await createBudgetPressureNotification(tx, userId, goal);
+
+      return goal;
     });
-
-    await createAuditLog({
-      userId,
-      action: 'BUDGET_GOAL_CREATED',
-      entityType: 'BudgetGoal',
-      entityId: goal.id,
-      ...metadata,
-      metadata: { categoryId: goal.categoryId, month: goal.month, year: goal.year, limitAmount: goal.limitAmount.toString() },
-    }, tx);
-
-    await createBudgetPressureNotification(tx, userId, goal);
-
-    return goal;
-  });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      throw conflict('Budget goal already exists for this category in this month');
+    }
+    throw error;
+  }
 };
 
 export const updateBudgetGoal = async (userId: string, id: string, data: UpdateBudgetGoalInput, metadata: RequestMetadata) => {
