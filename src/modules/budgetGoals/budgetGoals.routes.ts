@@ -25,6 +25,37 @@ export default async function budgetGoalsRoutes(fastify: FastifyInstance) {
     handler: budgetGoalsController.list,
   });
 
+  fastify.get('/envelopes', {
+    schema: {
+      tags: ['Budgets'],
+      summary: 'Get visual envelope budget breakdown with remaining cash and transfer history',
+      security: bearerAuth,
+      querystring: monthYearQuery,
+      response: { 400: errorResponse, 401: errorResponse },
+    },
+    handler: budgetGoalsController.envelopes,
+  });
+
+  fastify.post('/transfer', {
+    schema: {
+      tags: ['Budgets'],
+      summary: 'Transfer funds between budget envelopes',
+      security: bearerAuth,
+      response: { 400: errorResponse, 401: errorResponse, 404: errorResponse },
+    },
+    handler: budgetGoalsController.transfer,
+  });
+
+  fastify.post('/fill-envelopes', {
+    schema: {
+      tags: ['Budgets'],
+      summary: 'Batch allocate/fill envelopes on payday',
+      security: bearerAuth,
+      response: { 400: errorResponse, 401: errorResponse },
+    },
+    handler: budgetGoalsController.fill,
+  });
+
   fastify.post('/', {
     schema: {
       tags: ['Budgets'],

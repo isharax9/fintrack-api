@@ -6,3 +6,10 @@ export const reportQuerySchema = z.object({
 });
 
 export type ReportQuery = z.infer<typeof reportQuerySchema>;
+
+export const simulateSpendSchema = z.object({
+  amount: z.number().positive(),
+});
+
+export type SimulateSpendInput = z.infer<typeof simulateSpendSchema>;
+

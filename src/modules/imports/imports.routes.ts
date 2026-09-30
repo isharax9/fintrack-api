@@ -26,4 +26,33 @@ export default async function importsRoutes(fastify: FastifyInstance) {
     },
     handler: importsController.importTransactions,
   });
+
+  fastify.post('/statement-text', {
+    schema: {
+      tags: ['Imports'],
+      summary: 'Preview or import transactions from raw statement or SMS text',
+      security: bearerAuth,
+      querystring: {
+        type: 'object',
+        properties: {
+          dryRun: { type: 'boolean', default: true },
+        },
+      },
+      body: {
+        type: 'object',
+        properties: {
+          rawText: { type: 'string', minLength: 3 },
+          defaultAccountId: { type: 'string' },
+        },
+        required: ['rawText'],
+      },
+      response: {
+        200: importTransactionsResponse,
+        201: importTransactionsResponse,
+        400: errorResponse,
+        401: errorResponse,
+      },
+    },
+    handler: importsController.importStatement,
+  });
 }

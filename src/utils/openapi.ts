@@ -77,6 +77,10 @@ export const userResponse = {
     name: { type: 'string' },
     email: { type: 'string', format: 'email' },
     currency: { type: 'string', minLength: 3, maxLength: 3 },
+    paydayDay: { type: 'integer' },
+    paydayAmount: { type: 'number', nullable: true },
+    householdEnabled: { type: 'boolean' },
+    householdName: nullableString,
     createdAt: dateTime,
     updatedAt: dateTime,
   },
@@ -89,8 +93,10 @@ export const notificationPreferencesResponse = {
     budgetAlerts: { type: 'boolean' },
     monthlyReports: { type: 'boolean' },
     billReminders: { type: 'boolean' },
+    paydayReminders: { type: 'boolean' },
+    weeklyDigest: { type: 'boolean' },
   },
-  required: ['budgetAlerts', 'monthlyReports', 'billReminders'],
+  required: ['budgetAlerts', 'monthlyReports', 'billReminders', 'paydayReminders', 'weeklyDigest'],
 };
 
 export const notificationResponse = {
@@ -137,6 +143,8 @@ export const updateNotificationPreferencesBody = {
     budgetAlerts: { type: 'boolean' },
     monthlyReports: { type: 'boolean' },
     billReminders: { type: 'boolean' },
+    paydayReminders: { type: 'boolean' },
+    weeklyDigest: { type: 'boolean' },
   },
   additionalProperties: false,
 };
@@ -672,6 +680,10 @@ export const updateUserBody = {
   properties: {
     name: { type: 'string', minLength: 2 },
     currency: { type: 'string', minLength: 3, maxLength: 3 },
+    paydayDay: { type: 'integer', minimum: 1, maximum: 31 },
+    paydayAmount: { type: 'number', nullable: true },
+    householdEnabled: { type: 'boolean' },
+    householdName: nullableString,
   },
 };
 
