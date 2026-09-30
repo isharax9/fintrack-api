@@ -5,6 +5,8 @@ import {
   budgetGoalQuerySchema,
   createBudgetGoalSchema,
   updateBudgetGoalSchema,
+  transferEnvelopeSchema,
+  fillEnvelopesSchema,
 } from './budgetGoals.schema';
 import * as budgetGoalsService from './budgetGoals.service';
 
@@ -12,6 +14,27 @@ export const list = async (request: FastifyRequest, reply: FastifyReply) => {
   const { userId } = getAuthContext(request);
   const query = budgetGoalQuerySchema.parse(request.query);
   const result = await budgetGoalsService.listBudgetGoals(userId, query);
+  return reply.send(result);
+};
+
+export const envelopes = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { userId } = getAuthContext(request);
+  const query = budgetGoalQuerySchema.parse(request.query);
+  const result = await budgetGoalsService.getEnvelopes(userId, query);
+  return reply.send(result);
+};
+
+export const transfer = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { userId } = getAuthContext(request);
+  const data = transferEnvelopeSchema.parse(request.body);
+  const result = await budgetGoalsService.transferEnvelopeFunds(userId, data, getRequestMetadata(request));
+  return reply.send(result);
+};
+
+export const fill = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { userId } = getAuthContext(request);
+  const data = fillEnvelopesSchema.parse(request.body);
+  const result = await budgetGoalsService.fillEnvelopes(userId, data, getRequestMetadata(request));
   return reply.send(result);
 };
 
@@ -36,3 +59,4 @@ export const remove = async (request: FastifyRequest, reply: FastifyReply) => {
   await budgetGoalsService.deleteBudgetGoal(userId, id, getRequestMetadata(request));
   return reply.send({ message: 'Budget goal deleted' });
 };
+

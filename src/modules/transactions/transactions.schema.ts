@@ -32,7 +32,18 @@ export const transactionParamsSchema = z.object({
   id: z.string().cuid(),
 });
 
+export const smartParseSchema = z.object({
+  text: z.string().min(1).max(300),
+});
+
+export const aiCommandSchema = z.object({
+  command: z.string().min(1).max(300),
+});
+
 export type CreateTransactionInput = z.infer<typeof createTransactionSchema>;
 export type UpdateTransactionInput = z.infer<typeof updateTransactionSchema>;
 export type TransactionQuery = z.infer<typeof transactionQuerySchema>;
 export type TransactionParams = z.infer<typeof transactionParamsSchema>;
+export type SmartParseInput = z.infer<typeof smartParseSchema>;
+export type AiCommandInput = z.infer<typeof aiCommandSchema>;
+

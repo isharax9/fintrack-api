@@ -12,6 +12,10 @@ export const getProfile = async (userId: string) => {
       name: true,
       email: true,
       currency: true,
+      paydayDay: true,
+      paydayAmount: true,
+      householdEnabled: true,
+      householdName: true,
       createdAt: true,
       updatedAt: true,
     }
@@ -29,6 +33,10 @@ export const updateProfile = async (userId: string, data: UpdateUserInput) => {
       name: true,
       email: true,
       currency: true,
+      paydayDay: true,
+      paydayAmount: true,
+      householdEnabled: true,
+      householdName: true,
       createdAt: true,
       updatedAt: true,
     }
@@ -40,10 +48,14 @@ const mapNotificationPreferences = (user: {
   notifyBudgetAlerts: boolean;
   notifyMonthlyReports: boolean;
   notifyBillReminders: boolean;
+  notifyPaydayReminders: boolean;
+  notifyWeeklyDigest: boolean;
 }) => ({
   budgetAlerts: user.notifyBudgetAlerts,
   monthlyReports: user.notifyMonthlyReports,
   billReminders: user.notifyBillReminders,
+  paydayReminders: user.notifyPaydayReminders,
+  weeklyDigest: user.notifyWeeklyDigest,
 });
 
 export const getNotificationPreferences = async (userId: string) => {
@@ -53,6 +65,8 @@ export const getNotificationPreferences = async (userId: string) => {
       notifyBudgetAlerts: true,
       notifyMonthlyReports: true,
       notifyBillReminders: true,
+      notifyPaydayReminders: true,
+      notifyWeeklyDigest: true,
     },
   });
   if (!user) throw notFound('User not found');
@@ -69,11 +83,15 @@ export const updateNotificationPreferences = async (
       notifyBudgetAlerts: data.budgetAlerts,
       notifyMonthlyReports: data.monthlyReports,
       notifyBillReminders: data.billReminders,
+      notifyPaydayReminders: data.paydayReminders,
+      notifyWeeklyDigest: data.weeklyDigest,
     },
     select: {
       notifyBudgetAlerts: true,
       notifyMonthlyReports: true,
       notifyBillReminders: true,
+      notifyPaydayReminders: true,
+      notifyWeeklyDigest: true,
     },
   });
 
