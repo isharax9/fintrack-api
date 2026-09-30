@@ -110,6 +110,7 @@ async function healthRoutes(fastify: FastifyInstance) {
 
 export function buildApp() {
   const app = Fastify({
+    rewriteUrl: (req) => (req.url ? req.url.replace(/^\/+/, '/') : '/'),
     logger: {
       level: env.LOG_LEVEL,
       redact: ['req.headers.authorization', 'req.headers.cookie', 'password', '*.password', 'refreshToken', '*.refreshToken'],
