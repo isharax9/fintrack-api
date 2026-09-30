@@ -17,7 +17,25 @@ const envSchema = z.object({
   TRUST_PROXY: z.coerce.boolean().default(false),
   ENABLE_CRON: z.coerce.boolean().default(false),
   PORT: z.coerce.number().default(5000),
+}).superRefine((data, ctx) => {
+  if (data.NODE_ENV === 'production') {
+    if (data.ACCESS_TOKEN_SECRET.length < 32) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'ACCESS_TOKEN_SECRET must be at least 32 characters in production',
+        path: ['ACCESS_TOKEN_SECRET'],
+      });
+    }
+    if (data.REFRESH_TOKEN_SECRET.length < 32) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'REFRESH_TOKEN_SECRET must be at least 32 characters in production',
+        path: ['REFRESH_TOKEN_SECRET'],
+      });
+    }
+  }
 });
+
 
 export type EnvVars = z.infer<typeof envSchema>;
 

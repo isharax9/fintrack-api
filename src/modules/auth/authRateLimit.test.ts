@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { authRateLimitInternals, forgotPasswordRateLimit, loginRateLimit } from './authRateLimit';
+import { authRateLimitInternals, forgotPasswordRateLimit, loginRateLimit, verifyOtpRateLimit } from './authRateLimit';
 
 describe('auth rate limit config', () => {
   it('normalizes email addresses before generating keys', () => {
@@ -25,4 +25,14 @@ describe('auth rate limit config', () => {
 
     expect(key).toBe('forgot-password:127.0.0.1:user@example.com');
   });
+
+  it('keys verify-otp attempts by both ip and normalized email', () => {
+    const key = verifyOtpRateLimit.keyGenerator({
+      ip: '127.0.0.1',
+      body: { email: ' User@Example.com ' },
+    } as any);
+
+    expect(key).toBe('verify-otp:127.0.0.1:user@example.com');
+  });
 });
+

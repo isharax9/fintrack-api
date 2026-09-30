@@ -39,7 +39,7 @@ model Account {
   user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   name                  String
   type                  AccountType            @default(CASH)
-  balance               Decimal                @db.Decimal(10, 2) @default(0)
+  balance               Decimal                @db.Decimal(16, 2) @default(0)
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
 
@@ -59,7 +59,7 @@ model Transfer {
   fromAccount     Account  @relation("TransferFrom", fields: [fromAccountId], references: [id], onDelete: Cascade)
   toAccountId     String
   toAccount       Account  @relation("TransferTo", fields: [toAccountId], references: [id], onDelete: Cascade)
-  amount          Decimal  @db.Decimal(10, 2)
+  amount          Decimal  @db.Decimal(16, 2)
   date            DateTime @default(now())
   notes           String?
   status          TransferStatus @default(POSTED)
@@ -83,7 +83,7 @@ model Transaction {
   accountId  String?
   account    Account?        @relation(fields: [accountId], references: [id], onDelete: SetNull)
   title      String
-  amount     Decimal         @db.Decimal(10, 2)
+  amount     Decimal         @db.Decimal(16, 2)
   type       TransactionType
   categoryId String
   category   Category        @relation(fields: [categoryId], references: [id])
@@ -131,7 +131,7 @@ model BudgetGoal {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   categoryId  String
   category    Category @relation(fields: [categoryId], references: [id])
-  limitAmount Decimal  @db.Decimal(10, 2)
+  limitAmount Decimal  @db.Decimal(16, 2)
   month       Int
   year        Int
   createdAt   DateTime @default(now())
@@ -143,7 +143,7 @@ model SavingsBucket {
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  balance     Decimal  @db.Decimal(10, 2) @default(0)
+  balance     Decimal  @db.Decimal(16, 2) @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -155,8 +155,8 @@ model SavingsGoal {
   userId        String
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name          String
-  targetAmount  Decimal? @db.Decimal(10, 2)
-  currentAmount Decimal  @db.Decimal(10, 2) @default(0)
+  targetAmount  Decimal? @db.Decimal(16, 2)
+  currentAmount Decimal  @db.Decimal(16, 2) @default(0)
   deadline      DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -169,7 +169,7 @@ model RecurringTransaction {
   accountId       String
   account         Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
   title           String
-  amount          Decimal           @db.Decimal(10, 2)
+  amount          Decimal           @db.Decimal(16, 2)
   type            TransactionType
   categoryId      String
   category        Category          @relation(fields: [categoryId], references: [id])

@@ -1,10 +1,11 @@
 import { prisma } from '../../config/db';
 import { ReportQuery } from './reports.schema';
 import { TransactionType } from '@prisma/client';
+import { getMonthDateRangeUTC } from '../../utils/date';
 
 export const getSummary = async (userId: string, query: ReportQuery) => {
-  const startDate = new Date(query.year, query.month - 1, 1);
-  const endDate = new Date(query.year, query.month, 0, 23, 59, 59, 999);
+  const { startDate, endDate } = getMonthDateRangeUTC(query.year, query.month);
+
 
   const transactions = await prisma.transaction.groupBy({
     by: ['type'],
@@ -38,8 +39,7 @@ export const getSummary = async (userId: string, query: ReportQuery) => {
 };
 
 export const getByCategory = async (userId: string, query: ReportQuery) => {
-  const startDate = new Date(query.year, query.month - 1, 1);
-  const endDate = new Date(query.year, query.month, 0, 23, 59, 59, 999);
+  const { startDate, endDate } = getMonthDateRangeUTC(query.year, query.month);
 
   const expenses = await prisma.transaction.groupBy({
     by: ['categoryId'],
@@ -72,8 +72,8 @@ export const getByCategory = async (userId: string, query: ReportQuery) => {
 };
 
 export const getCategoryFlow = async (userId: string, query: ReportQuery) => {
-  const startDate = new Date(query.year, query.month - 1, 1);
-  const endDate = new Date(query.year, query.month, 0, 23, 59, 59, 999);
+  const { startDate, endDate } = getMonthDateRangeUTC(query.year, query.month);
+
 
   const flows = await prisma.transaction.groupBy({
     by: ['categoryId', 'type'],

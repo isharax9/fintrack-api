@@ -97,6 +97,10 @@ export const createTransfer = async (userId: string, data: CreateTransferInput, 
     throw badRequest('One or both accounts not found or do not belong to user');
   }
 
+  if (accountFrom.type !== 'CREDIT' && accountFrom.balance !== undefined && Number(accountFrom.balance) < data.amount) {
+    throw badRequest(`Insufficient funds in source account '${accountFrom.name || 'Account'}'`);
+  }
+
   return prisma.$transaction(async (tx) => {
     const transfer = await tx.transfer.create({
       data: {
@@ -152,6 +156,15 @@ export const reverseTransfer = async (
 
   if (transfer.reversal) {
     throw badRequest('Transfer has already been reversed');
+  }
+
+  if (
+    transfer.toAccount &&
+    transfer.toAccount.type !== 'CREDIT' &&
+    transfer.toAccount.balance !== undefined &&
+    Number(transfer.toAccount.balance) < Number(transfer.amount)
+  ) {
+    throw badRequest(`Insufficient funds in account '${transfer.toAccount.name || 'Account'}' to reverse transfer`);
   }
 
   return prisma.$transaction(async (tx) => {
