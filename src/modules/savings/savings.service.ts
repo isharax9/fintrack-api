@@ -125,8 +125,10 @@ export const allocateGoalFunds = async (userId: string, id: string, data: Alloca
         entityType: 'SavingsGoal',
         entityId: updatedGoal.id,
         metadata: {
+          goalName: updatedGoal.name,
           targetAmount,
           currentAmount,
+          milestonePercent: 100,
         },
       }, tx);
     }

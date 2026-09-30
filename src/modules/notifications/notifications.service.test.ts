@@ -63,6 +63,7 @@ describe('notifications service', () => {
 
   it('creates ungated import notifications', async () => {
     const service = await import('./notifications.service');
+    mocks.prisma.user.findUnique.mockResolvedValue({ email: 'user@example.com', name: 'User' });
     mocks.prisma.notification.create.mockResolvedValue({ id: 'notification_1' });
 
     const result = await service.createNotification({
@@ -73,7 +74,8 @@ describe('notifications service', () => {
     });
 
     expect(result).toEqual({ id: 'notification_1' });
-    expect(mocks.prisma.user.findUnique).not.toHaveBeenCalled();
+    // user is always fetched to get email/name for potential email dispatch
+    expect(mocks.prisma.user.findUnique).toHaveBeenCalledOnce();
   });
 
   it('prevents marking another user notification as read', async () => {

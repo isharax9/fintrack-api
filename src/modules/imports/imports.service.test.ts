@@ -19,6 +19,9 @@ const mocks = vi.hoisted(() => ({
     notification: {
       create: vi.fn(),
     },
+    user: {
+      findUnique: vi.fn(),
+    },
     $transaction: vi.fn(),
   },
   createAuditLog: vi.fn(),
@@ -31,6 +34,7 @@ describe('imports service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.prisma.$transaction.mockImplementation(async (callback) => callback(mocks.prisma));
+    mocks.prisma.user.findUnique.mockResolvedValue({ email: 'user@example.com', name: 'User' });
     mocks.prisma.account.findMany.mockResolvedValue([
       { id: 'account_1', name: 'Checking' },
     ]);
