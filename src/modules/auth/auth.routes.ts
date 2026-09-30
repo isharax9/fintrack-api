@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { errorResponse, messageResponse, refreshSessionResponse } from '../../utils/openapi';
 import * as authController from './auth.controller';
-import { forgotPasswordRateLimit, loginRateLimit } from './authRateLimit';
+import { forgotPasswordRateLimit, loginRateLimit, verifyOtpRateLimit } from './authRateLimit';
 
 export default async function authRoutes(fastify: FastifyInstance) {
   const userResponse = {
@@ -144,6 +144,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/verify-otp', {
+    config: { rateLimit: verifyOtpRateLimit },
     schema: {
       tags: ['Auth'],
       summary: 'Verify password reset OTP',

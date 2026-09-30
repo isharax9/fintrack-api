@@ -2,6 +2,7 @@ import PDFDocument from 'pdfkit-table';
 import { prisma } from '../../config/db';
 import { buildTransactionWhere } from '../transactions/transactions.service';
 import { TransactionQuery } from '../transactions/transactions.schema';
+import { getMonthDateRangeUTC } from '../../utils/date';
 
 export const generateTransactionsPdf = async (userId: string, query: TransactionQuery) => {
   const doc = new PDFDocument({ margin: 30, size: 'A4' });
@@ -13,7 +14,8 @@ export const generateTransactionsPdf = async (userId: string, query: Transaction
   const transactions = await prisma.transaction.findMany({
     where,
     include: { account: true, category: true, tags: true },
-    orderBy: { date: 'desc' }
+    orderBy: { date: 'desc' },
+    take: 500,
   });
 
   const tableFormat = {
@@ -46,8 +48,8 @@ export const generateSummaryPdf = async (userId: string, month: number, year: nu
   doc.fontSize(20).text(`FinTrack - Summary Report (${month}/${year})`, { align: 'center' });
   doc.moveDown();
 
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+  const { startDate, endDate } = getMonthDateRangeUTC(year, month);
+
 
   // Basic stats
   const incomeAgg = await prisma.transaction.aggregate({

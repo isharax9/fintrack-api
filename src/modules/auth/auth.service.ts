@@ -281,6 +281,7 @@ export const generateOtp = async (email: string, metadata: SessionMetadata = {})
 
   if (redis) {
     await redis.set(`otp:${email}`, otp, 'EX', 10 * 60); // 10 minutes
+    await redis.del(`otp_attempts:${email}`);
   }
 
   await sendOTP(email, otp);
@@ -297,24 +298,71 @@ export const generateOtp = async (email: string, metadata: SessionMetadata = {})
 
 export const verifyOtp = async (email: string, otp: string) => {
   if (!redis) throw badRequest('OTP verification requires Redis');
-  
+
+  const attemptsKey = `otp_attempts:${email}`;
+  const attemptsStr = await redis.get(attemptsKey);
+  const attempts = attemptsStr ? parseInt(attemptsStr, 10) : 0;
+
+  if (attempts >= 5) {
+    await redis.del(`otp:${email}`);
+    throw badRequest('Too many failed OTP attempts. Please request a new code.');
+  }
+
   const storedOtp = await redis.get(`otp:${email}`);
-  if (storedOtp !== otp) {
+  if (!storedOtp || storedOtp !== otp) {
+    const newAttempts = attempts + 1;
+    await redis.set(attemptsKey, newAttempts.toString(), 'EX', 10 * 60);
+    if (newAttempts >= 5) {
+      await redis.del(`otp:${email}`);
+      throw badRequest('Too many failed OTP attempts. Please request a new code.');
+    }
     throw badRequest('Invalid or expired OTP');
   }
 
-  // OTP verified, issue a short lived reset token
+  // OTP verified, clear OTP and attempts
+  await redis.del(`otp:${email}`);
+  await redis.del(attemptsKey);
+
+  // OTP verified, issue a short-lived single-use reset token
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) throw badRequest('User not found');
 
-  const resetToken = jwt.sign({ userId: user.id }, env.ACCESS_TOKEN_SECRET, { expiresIn: '10m' });
-  
-  await redis.del(`otp:${email}`);
+  const tokenId = crypto.randomUUID();
+  const resetToken = jwt.sign(
+    { userId: user.id, purpose: 'password_reset', jti: tokenId },
+    env.ACCESS_TOKEN_SECRET,
+    { expiresIn: '10m' },
+  );
+
+  await redis.set(`reset_token:${tokenId}`, user.id, 'EX', 10 * 60);
+
   return { resetToken };
 };
 
 export const resetPassword = async (input: ResetPasswordInput, metadata: SessionMetadata = {}) => {
-  const payload = jwt.verify(input.resetToken, env.ACCESS_TOKEN_SECRET) as { userId: string };
+  let payload: { userId: string; purpose?: string; jti?: string };
+  try {
+    payload = jwt.verify(input.resetToken, env.ACCESS_TOKEN_SECRET) as {
+      userId: string;
+      purpose?: string;
+      jti?: string;
+    };
+  } catch {
+    throw badRequest('Invalid or expired reset token');
+  }
+
+  if (payload.purpose !== 'password_reset') {
+    throw badRequest('Invalid reset token purpose');
+  }
+
+  if (redis && payload.jti) {
+    const valid = await redis.get(`reset_token:${payload.jti}`);
+    if (!valid || valid !== payload.userId) {
+      throw badRequest('Reset token has expired or already been used');
+    }
+    await redis.del(`reset_token:${payload.jti}`);
+  }
+
   const hashedPassword = await hashPassword(input.newPassword);
 
   await prisma.user.update({
