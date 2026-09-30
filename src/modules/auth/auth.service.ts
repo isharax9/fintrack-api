@@ -38,13 +38,20 @@ const getRefreshExpiry = () =>
 
 const createSessionTokens = async (userId: string, metadata: SessionMetadata = {}) => {
   const expiresAt = getRefreshExpiry();
+  const userAgent = Array.isArray(metadata.userAgent)
+    ? metadata.userAgent[0]
+    : (typeof metadata.userAgent === 'string' ? metadata.userAgent : null);
+  const ip = Array.isArray(metadata.ip)
+    ? metadata.ip[0]
+    : (typeof metadata.ip === 'string' ? metadata.ip : null);
+
   const session = await prisma.refreshSession.create({
     data: {
       userId,
       tokenHash: `pending:${crypto.randomUUID()}`,
       familyId: crypto.randomUUID(),
-      userAgentHash: metadata.userAgent || null,
-      ipHash: metadata.ip || null,
+      userAgentHash: userAgent,
+      ipHash: ip,
       expiresAt,
     },
   });
