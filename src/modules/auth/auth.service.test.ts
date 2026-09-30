@@ -158,7 +158,11 @@ describe('auth service sessions', () => {
     mocks.hashPassword.mockResolvedValue('new-hash');
 
     const jwt = await import('jsonwebtoken');
-    const resetToken = jwt.sign({ userId: 'user_1' }, 'test-access-secret', { expiresIn: '10m' });
+    const resetToken = jwt.sign(
+      { userId: 'user_1', purpose: 'password_reset', jti: 'test-jti' },
+      'test-access-secret',
+      { expiresIn: '10m' },
+    );
 
     await authService.resetPassword({ resetToken, newPassword: 'new-password' }, { requestId: 'req_3' });
 
@@ -172,6 +176,19 @@ describe('auth service sessions', () => {
         revokedAt: expect.any(Date),
         revokeReason: 'PASSWORD_RESET',
       }),
+    });
+  });
+
+  it('rejects an access token without password_reset purpose for password reset', async () => {
+    const authService = await import('./auth.service');
+    const jwt = await import('jsonwebtoken');
+    const regularAccessToken = jwt.sign({ userId: 'user_1' }, 'test-access-secret', { expiresIn: '15m' });
+
+    await expect(
+      authService.resetPassword({ resetToken: regularAccessToken, newPassword: 'new-password' })
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'BAD_REQUEST',
     });
   });
 

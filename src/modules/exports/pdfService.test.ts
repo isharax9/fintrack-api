@@ -74,6 +74,7 @@ describe('pdf export service', () => {
       where,
       include: { account: true, category: true, tags: true },
       orderBy: { date: 'desc' },
+      take: 500,
     });
     expect(mocks.table).toHaveBeenCalledWith(
       expect.objectContaining({

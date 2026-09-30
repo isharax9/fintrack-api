@@ -29,6 +29,13 @@ export const forgotPasswordRateLimit = {
   keyGenerator: (request: FastifyRequest) => `forgot-password:${getIpKey(request)}:${getEmailFromBody(request)}`,
 };
 
+export const verifyOtpRateLimit = {
+  max: 5,
+  timeWindow: '10 minutes',
+  keyGenerator: (request: FastifyRequest) => `verify-otp:${getIpKey(request)}:${getEmailFromBody(request)}`,
+};
+
 export const authRateLimitInternals = {
   normalizeEmail,
 };
+

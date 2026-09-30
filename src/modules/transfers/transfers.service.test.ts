@@ -225,4 +225,52 @@ describe('transfers service money flows', () => {
     expect(mocks.prisma.account.update).not.toHaveBeenCalled();
     expect(mocks.prisma.transfer.create).not.toHaveBeenCalled();
   });
+
+  it('rejects creating a transfer when source account has insufficient funds', async () => {
+    const transfersService = await import('./transfers.service');
+    mocks.prisma.account.findFirst
+      .mockResolvedValueOnce({ id: 'from_account', userId: 'user_1', balance: 50, type: 'BANK', name: 'Checking' })
+      .mockResolvedValueOnce({ id: 'to_account', userId: 'user_1', balance: 100, type: 'BANK', name: 'Savings' });
+
+    await expect(
+      transfersService.createTransfer(
+        'user_1',
+        { fromAccountId: 'from_account', toAccountId: 'to_account', amount: 250 },
+        {},
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'BAD_REQUEST',
+      message: expect.stringContaining('Insufficient funds'),
+    });
+
+    expect(mocks.prisma.transfer.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects reversing a transfer when destination account has insufficient funds', async () => {
+    const transfersService = await import('./transfers.service');
+    const original = {
+      id: 'transfer_1',
+      userId: 'user_1',
+      fromAccountId: 'from_account',
+      toAccountId: 'to_account',
+      amount: 250,
+      status: 'POSTED',
+      reversal: null,
+      toAccount: { id: 'to_account', name: 'Savings', balance: 50, type: 'BANK' },
+    };
+    mocks.prisma.transfer.findFirst.mockResolvedValue(original);
+
+    await expect(
+      transfersService.reverseTransfer('user_1', 'transfer_1', {}, {}),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'BAD_REQUEST',
+      message: expect.stringContaining('Insufficient funds'),
+    });
+
+    expect(mocks.prisma.account.update).not.toHaveBeenCalled();
+    expect(mocks.prisma.transfer.create).not.toHaveBeenCalled();
+  });
 });
+
