@@ -82,4 +82,43 @@ describe('smartParseTransaction', () => {
     expect(result.title).toBe('Laptop');
     expect(result.categoryId).toBe('cat_shop');
   });
+
+  it('parses "got money from mom 3000 for fuel" as INCOME with person extracted and Allowance category', async () => {
+    const { smartParseTransaction } = await import('./transactions.service');
+
+    mocks.prisma.category.findMany.mockResolvedValue([
+      { id: 'cat_income', name: 'Income', color: '#10b981', icon: 'wallet' },
+      { id: 'cat_allowance', name: 'Allowance', color: '#3b82f6', icon: 'gift' },
+      { id: 'cat_fuel', name: 'Fuel', color: '#ef4444', icon: 'fuel' },
+    ]);
+    mocks.prisma.account.findMany.mockResolvedValue([
+      { id: 'acc_cash', name: 'Cash', type: 'CASH' },
+    ]);
+    mocks.prisma.user.findUnique.mockResolvedValue({ currency: 'LKR' });
+
+    const result = await smartParseTransaction('user_1', 'got money from mom 3000 for fuel');
+
+    expect(result.amount).toBe(3000);
+    expect(result.type).toBe('INCOME');
+    expect(result.categoryId).toBe('cat_allowance'); // correctly picks Allowance over Fuel!
+    expect(result.title.toLowerCase()).toContain('mom');
+  });
+
+  it('parses "100 for ice-cream from keels" with typo handling as EXPENSE and Food category', async () => {
+    const { smartParseTransaction } = await import('./transactions.service');
+
+    mocks.prisma.category.findMany.mockResolvedValue([
+      { id: 'cat_food', name: 'Food', color: '#f59e0b', icon: 'utensils' },
+      { id: 'cat_income', name: 'Income', color: '#10b981', icon: 'wallet' },
+    ]);
+    mocks.prisma.account.findMany.mockResolvedValue([]);
+    mocks.prisma.user.findUnique.mockResolvedValue({ currency: 'LKR' });
+
+    const result = await smartParseTransaction('user_1', '100 for ice-cream from keels');
+
+    expect(result.amount).toBe(100);
+    expect(result.type).toBe('EXPENSE');
+    expect(result.categoryId).toBe('cat_food');
+    expect(result.title.toLowerCase()).toContain('keells');
+  });
 });

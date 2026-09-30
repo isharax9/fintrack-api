@@ -17,6 +17,7 @@ const envSchema = z.object({
   TRUST_PROXY: z.coerce.boolean().default(false),
   ENABLE_CRON: z.coerce.boolean().default(false),
   PORT: z.coerce.number().default(5000),
+  GEMINI_API_KEY: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.NODE_ENV === 'production') {
     if (data.ACCESS_TOKEN_SECRET.length < 32) {
