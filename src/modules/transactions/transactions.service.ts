@@ -31,8 +31,9 @@ export const buildTransactionWhere = async (userId: string, query: TransactionQu
 
   if (query.search) {
     const raw = query.search.trim();
-    const cleanNum = raw.replace(/[^0-9.]/g, '');
-    const num = cleanNum ? parseFloat(cleanNum) : null;
+    const cleanForNum = raw.replace(/[,$€£¥₹]/g, '').trim();
+    const numMatch = cleanForNum.match(/\b\d+(\.\d{1,2})?\b/);
+    const num = numMatch ? parseFloat(numMatch[0]) : null;
     const tokens = raw.split(/\s+/).filter((t) => t.length > 0);
 
     const conditions: Prisma.TransactionWhereInput[] = [
@@ -43,19 +44,50 @@ export const buildTransactionWhere = async (userId: string, query: TransactionQu
       { tags: { some: { name: { contains: raw, mode: 'insensitive' }, userId } } },
     ];
 
-    if (tokens.length > 1) {
-      for (const token of tokens) {
-        conditions.push(
-          { title: { contains: token, mode: 'insensitive' } },
-          { notes: { contains: token, mode: 'insensitive' } },
-          { category: { name: { contains: token, mode: 'insensitive' } } },
-          { account: { name: { contains: token, mode: 'insensitive' } } },
-        );
+    for (const token of tokens) {
+      const cleanToken = token.replace(/[^a-zA-Z0-9]/g, '');
+      if (!cleanToken) continue;
+
+      conditions.push(
+        { title: { contains: cleanToken, mode: 'insensitive' } },
+        { notes: { contains: cleanToken, mode: 'insensitive' } },
+        { category: { name: { contains: cleanToken, mode: 'insensitive' } } },
+        { account: { name: { contains: cleanToken, mode: 'insensitive' } } },
+      );
+
+      // Suffix/stem matching for close guesses (e.g. "groceries" -> "grocer", "keells" -> "keell")
+      if (cleanToken.length > 4) {
+        if (cleanToken.endsWith('ies')) {
+          const stem = cleanToken.slice(0, -3);
+          conditions.push(
+            { category: { name: { contains: stem, mode: 'insensitive' } } },
+            { title: { contains: stem, mode: 'insensitive' } },
+          );
+        } else if (cleanToken.endsWith('ing')) {
+          const stem = cleanToken.slice(0, -3);
+          conditions.push({ title: { contains: stem, mode: 'insensitive' } });
+        } else if (cleanToken.endsWith('s') && !cleanToken.endsWith('ss')) {
+          const stem = cleanToken.slice(0, -1);
+          conditions.push(
+            { category: { name: { contains: stem, mode: 'insensitive' } } },
+            { title: { contains: stem, mode: 'insensitive' } },
+          );
+        }
       }
     }
 
     if (num !== null && !isNaN(num) && num > 0) {
       conditions.push({ amount: num });
+      if (Number.isInteger(num)) {
+        conditions.push({ amount: { gte: num, lte: num + 0.99 } });
+      }
+    }
+
+    const upper = raw.toUpperCase();
+    if (upper === 'INCOME' || upper === 'SALARY' || upper === 'INFLOW') {
+      conditions.push({ type: 'INCOME' });
+    } else if (upper === 'EXPENSE' || upper === 'SPENT' || upper === 'OUTFLOW') {
+      conditions.push({ type: 'EXPENSE' });
     }
 
     where.OR = conditions;

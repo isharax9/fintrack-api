@@ -43,8 +43,8 @@ const createSessionTokens = async (userId: string, metadata: SessionMetadata = {
       userId,
       tokenHash: `pending:${crypto.randomUUID()}`,
       familyId: crypto.randomUUID(),
-      userAgentHash: hashOptional(metadata.userAgent),
-      ipHash: hashOptional(metadata.ip),
+      userAgentHash: metadata.userAgent || null,
+      ipHash: metadata.ip || null,
       expiresAt,
     },
   });
