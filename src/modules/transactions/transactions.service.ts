@@ -30,13 +30,35 @@ export const buildTransactionWhere = async (userId: string, query: TransactionQu
   }
 
   if (query.search) {
-    where.OR = [
-      { title: { contains: query.search, mode: 'insensitive' } },
-      { notes: { contains: query.search, mode: 'insensitive' } },
-      { category: { name: { contains: query.search, mode: 'insensitive' } } },
-      { account: { name: { contains: query.search, mode: 'insensitive' } } },
-      { tags: { some: { name: { contains: query.search, mode: 'insensitive' }, userId } } },
+    const raw = query.search.trim();
+    const cleanNum = raw.replace(/[^0-9.]/g, '');
+    const num = cleanNum ? parseFloat(cleanNum) : null;
+    const tokens = raw.split(/\s+/).filter((t) => t.length > 0);
+
+    const conditions: Prisma.TransactionWhereInput[] = [
+      { title: { contains: raw, mode: 'insensitive' } },
+      { notes: { contains: raw, mode: 'insensitive' } },
+      { category: { name: { contains: raw, mode: 'insensitive' } } },
+      { account: { name: { contains: raw, mode: 'insensitive' } } },
+      { tags: { some: { name: { contains: raw, mode: 'insensitive' }, userId } } },
     ];
+
+    if (tokens.length > 1) {
+      for (const token of tokens) {
+        conditions.push(
+          { title: { contains: token, mode: 'insensitive' } },
+          { notes: { contains: token, mode: 'insensitive' } },
+          { category: { name: { contains: token, mode: 'insensitive' } } },
+          { account: { name: { contains: token, mode: 'insensitive' } } },
+        );
+      }
+    }
+
+    if (num !== null && !isNaN(num) && num > 0) {
+      conditions.push({ amount: num });
+    }
+
+    where.OR = conditions;
   }
 
   return where;
