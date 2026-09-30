@@ -4,6 +4,8 @@ import { Prisma } from '@prisma/client';
 import { createAuditLog } from '../audit/audit.service';
 import { RequestMetadata } from '../../utils/requestContext';
 import { badRequest, notFound } from '../../utils/errors';
+import { addDays } from 'date-fns';
+
 
 export const buildTransactionWhere = async (userId: string, query: TransactionQuery) => {
   const where: Prisma.TransactionWhereInput = { userId };
@@ -262,3 +264,263 @@ export const deleteTransaction = async (userId: string, id: string, metadata: Re
     }, tx);
   });
 };
+
+export const smartParseTransaction = async (userId: string, input: string) => {
+  const cleanInput = input.trim();
+  const [categories, accounts, user] = await Promise.all([
+    prisma.category.findMany({ where: { userId } }),
+    prisma.account.findMany({ where: { userId } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { currency: true } }),
+  ]);
+  const currency = user?.currency || 'USD';
+
+  // 1. Extract Amount
+  let amount = 0;
+  const amountMatch = cleanInput.match(
+    /(?:(?:lkr|rs|usd|\$|€|£)\.?\s*)?([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?|[0-9]+k)\b/i,
+  );
+  if (amountMatch) {
+    const rawNum = amountMatch[1].toLowerCase().replace(/,/g, '');
+    if (rawNum.endsWith('k')) {
+      amount = parseFloat(rawNum.replace('k', '')) * 1000;
+    } else {
+      amount = parseFloat(rawNum);
+    }
+  }
+
+  // 2. Determine Type (INCOME vs EXPENSE)
+  const isIncome = /\b(salary|income|earned|received|got paid|deposit|freelance|dividend|bonus)\b/i.test(cleanInput);
+  const type: 'INCOME' | 'EXPENSE' = isIncome ? 'INCOME' : 'EXPENSE';
+
+  // 3. Extract Date
+  let date = new Date();
+  if (/\byesterday\b/i.test(cleanInput)) {
+    date = addDays(date, -1);
+  } else if (/\btomorrow\b/i.test(cleanInput)) {
+    date = addDays(date, 1);
+  }
+
+  // 4. Match Category
+  const lowerInput = cleanInput.toLowerCase();
+  let matchedCategory = categories.find((cat) => lowerInput.includes(cat.name.toLowerCase()));
+
+  if (!matchedCategory) {
+    const keywordMap: Record<string, string[]> = {
+      Food: [
+        'keells',
+        'cargills',
+        'spar',
+        'arpico',
+        'food',
+        'groceries',
+        'supermarket',
+        'dinner',
+        'lunch',
+        'breakfast',
+        'coffee',
+        'cafe',
+        'restaurant',
+        'burger',
+        'pizza',
+        'bread',
+        'eating outside',
+        'snacks',
+        'eat',
+        'dining',
+      ],
+      Utilities: [
+        'electricity',
+        'ceb',
+        'water',
+        'internet',
+        'dialog',
+        'mobitel',
+        'slt',
+        'wifi',
+        'utility',
+        'phone',
+        'bill',
+        'recharge',
+      ],
+      Transportation: ['uber', 'pickme', 'fuel', 'petrol', 'diesel', 'taxi', 'parking', 'bus', 'train', 'transport'],
+      Housing: ['rent', 'lease', 'apartment', 'house', 'maintenance'],
+      Subscriptions: [
+        'netflix',
+        'spotify',
+        'prime',
+        'apple',
+        'youtube',
+        'gym',
+        'movie',
+        'cinema',
+        'game',
+        'subscription',
+      ],
+      Healthcare: ['pharmacy', 'medicine', 'hospital', 'doctor', 'clinic', 'dentist', 'health'],
+      Shopping: ['clothes', 'shoes', 'amazon', 'daraz', 'laptop', 'phone', 'gadget', 'electronics', 'fashion'],
+      Salary: ['salary', 'bonus', 'paycheck', 'payroll', 'client'],
+    };
+
+    for (const [catName, keywords] of Object.entries(keywordMap)) {
+      if (keywords.some((k) => lowerInput.includes(k))) {
+        matchedCategory = categories.find((c) => c.name.toLowerCase().includes(catName.toLowerCase()));
+        if (matchedCategory) break;
+      }
+    }
+  }
+
+  if (!matchedCategory && categories.length > 0) {
+    matchedCategory = categories[0];
+  }
+
+  // 5. Match Account
+  let matchedAccount = accounts.find((acc) => lowerInput.includes(acc.name.toLowerCase()));
+  if (!matchedAccount) {
+    if (/\bcash\b/i.test(cleanInput)) {
+      matchedAccount = accounts.find((a) => a.type === 'CASH');
+    } else if (/\b(bank|card|credit)\b/i.test(cleanInput)) {
+      matchedAccount = accounts.find((a) => ['BANK', 'CREDIT'].includes(a.type));
+    }
+  }
+  if (!matchedAccount && accounts.length > 0) {
+    matchedAccount = accounts.find((a) => ['BANK', 'CASH', 'WALLET'].includes(a.type)) || accounts[0];
+  }
+
+  // 6. Extract Title / Merchant
+  let title = cleanInput
+    .replace(
+      /(?:(?:lkr|rs|usd|\$|€|£)\.?\s*)?([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?|[0-9]+k)\b/gi,
+      '',
+    )
+    .replace(/\b(spent|paid|bought|got|added|today|yesterday|tomorrow|at|for|on|in|from|to|lkr|rs|usd)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!title || title.length < 2) {
+    title = matchedCategory ? matchedCategory.name : type === 'INCOME' ? 'Income' : 'Expense';
+  } else {
+    title = title
+      .split(' ')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+  }
+
+  return {
+    title,
+    amount: amount || 0,
+    type,
+    categoryId: matchedCategory?.id || '',
+    categoryName: matchedCategory?.name || 'General',
+    categoryColor: matchedCategory?.color || '#3b82f6',
+    categoryIcon: matchedCategory?.icon || 'receipt',
+    accountId: matchedAccount?.id,
+    accountName: matchedAccount?.name,
+    date: date.toISOString().split('T')[0],
+    currency,
+    rawText: cleanInput,
+  };
+};
+
+export const executeAiCommand = async (userId: string, command: string, metadata: RequestMetadata) => {
+  const clean = command.trim();
+  const lower = clean.toLowerCase();
+
+  const isQuery =
+    /^(how much|what did i spend|total spent|how much left|what is my)/i.test(lower) || lower.includes('how much');
+
+  if (isQuery) {
+    const now = new Date();
+    const startOfMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+    const endOfMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999));
+
+    const categories = await prisma.category.findMany({ where: { userId } });
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { currency: true } });
+    const currency = user?.currency || 'USD';
+
+    let targetCategory = categories.find((c) => lower.includes(c.name.toLowerCase()));
+    if (!targetCategory) {
+      if (lower.includes('eat') || lower.includes('food') || lower.includes('outside') || lower.includes('dining')) {
+        targetCategory = categories.find((c) => /food|dining|restaurant|groceries/i.test(c.name));
+      } else if (
+        lower.includes('fuel') ||
+        lower.includes('petrol') ||
+        lower.includes('transport') ||
+        lower.includes('uber')
+      ) {
+        targetCategory = categories.find((c) => /transport|fuel|travel/i.test(c.name));
+      }
+    }
+
+    if (targetCategory) {
+      const expenses = await prisma.transaction.findMany({
+        where: {
+          userId,
+          categoryId: targetCategory.id,
+          type: 'EXPENSE',
+          date: { gte: startOfMonth, lte: endOfMonth },
+        },
+      });
+
+      const total = expenses.reduce((s, t) => s + Number(t.amount), 0);
+      const count = expenses.length;
+
+      return {
+        success: true,
+        action: 'QUERY',
+        category: targetCategory.name,
+        total,
+        count,
+        currency,
+        message: `You have spent ${currency} ${total.toLocaleString()} across ${count} transaction${count === 1 ? '' : 's'} on ${targetCategory.name} this month.`,
+      };
+    } else {
+      const expenses = await prisma.transaction.findMany({
+        where: {
+          userId,
+          type: 'EXPENSE',
+          date: { gte: startOfMonth, lte: endOfMonth },
+        },
+      });
+      const total = expenses.reduce((s, t) => s + Number(t.amount), 0);
+      return {
+        success: true,
+        action: 'QUERY',
+        total,
+        count: expenses.length,
+        currency,
+        message: `Your total spending this month is ${currency} ${total.toLocaleString()} across ${expenses.length} transactions.`,
+      };
+    }
+  }
+
+  const parsed = await smartParseTransaction(userId, clean);
+  if (!parsed.amount || parsed.amount <= 0) {
+    throw badRequest('Could not recognize amount. Please specify an amount, e.g. "Spent 6500 at Cargills"');
+  }
+  if (!parsed.categoryId) {
+    throw badRequest('No category available for this transaction.');
+  }
+
+  const created = await createTransaction(
+    userId,
+    {
+      title: parsed.title,
+      amount: parsed.amount,
+      type: parsed.type,
+      categoryId: parsed.categoryId,
+      accountId: parsed.accountId,
+      date: new Date(parsed.date).toISOString(),
+      notes: `Quick captured: "${clean}"`,
+    },
+    metadata,
+  );
+
+  return {
+    success: true,
+    action: 'CREATE_TRANSACTION',
+    message: `Added ${parsed.currency} ${parsed.amount.toLocaleString()} → ${parsed.categoryName} → ${parsed.title}`,
+    transaction: created,
+    parsed,
+  };
+};
+

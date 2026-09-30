@@ -6,7 +6,11 @@ import { processDueRecurringTransactions } from '../recurring/recurring.service'
 import {
   sendBillReminderEmail,
   sendMonthlyReportEmail,
+  sendPaydayReminderEmail,
+  sendWeekendSafeToSpendDigestEmail,
 } from '../../utils/email';
+import { getSafeToSpend } from '../reports/reports.service';
+
 
 const logCron = (level: 'info' | 'error', message: string, data: Record<string, unknown> = {}) => {
   const payload = JSON.stringify({
@@ -285,5 +289,102 @@ export function initCronJobs(): ScheduledTask[] {
   );
   tasks.push(monthlyReportTask);
 
+  // ── 5. Payday & Salary Reminder emails (08:30 every morning) ─────────────
+  const paydayReminderTask = cron.schedule(
+    '30 8 * * *',
+    async () => {
+      logCron('info', 'Running daily payday reminder email check');
+      const now = new Date();
+
+      try {
+        const users = await prisma.user.findMany({
+          where: { notifyPaydayReminders: true },
+          select: { id: true, email: true, name: true, paydayDay: true },
+        });
+
+        let sent = 0;
+        for (const user of users) {
+          try {
+            const safeData = await getSafeToSpend(user.id);
+            if (safeData.daysUntilPayday <= 1) {
+              const isPaydayToday = safeData.daysUntilPayday === 1 && now.getDate() === (user.paydayDay || 25);
+              await sendPaydayReminderEmail({
+                to: user.email,
+                userName: user.name,
+                expectedSalary: safeData.expectedPaydayAmount,
+                currentCash: safeData.currentCash,
+                billsBeforeSalary: safeData.billsBeforeSalary,
+                safeToSpend: safeData.safeToSpend,
+                safeDailySpending: safeData.safeDailySpending,
+                daysUntilPayday: safeData.daysUntilPayday,
+                currency: safeData.currency,
+                isPaydayToday,
+              });
+              sent++;
+            }
+          } catch (err) {
+            logCron('error', 'Failed to send payday reminder to user', {
+              userId: user.id,
+              error: err instanceof Error ? err.message : 'Unknown',
+            });
+          }
+        }
+        logCron('info', 'Payday reminder emails sent', { sent });
+      } catch (e) {
+        logCron('error', 'Error in payday reminder cron', {
+          error: e instanceof Error ? e.message : 'Unknown error',
+        });
+      }
+    },
+    { name: 'payday-reminder-emails', noOverlap: true },
+  );
+  tasks.push(paydayReminderTask);
+
+  // ── 6. Friday Weekend Safe-to-Spend Digest (15:00 every Friday) ──────────
+  const weekendDigestTask = cron.schedule(
+    '0 15 * * 5',
+    async () => {
+      logCron('info', 'Running Friday weekend safe-to-spend digest');
+
+      try {
+        const users = await prisma.user.findMany({
+          where: { notifyWeeklyDigest: true },
+          select: { id: true, email: true, name: true },
+        });
+
+        let sent = 0;
+        for (const user of users) {
+          try {
+            const safeData = await getSafeToSpend(user.id);
+            await sendWeekendSafeToSpendDigestEmail({
+              to: user.email,
+              userName: user.name,
+              safeToSpend: safeData.safeToSpend,
+              safeDailySpending: safeData.safeDailySpending,
+              daysUntilPayday: safeData.daysUntilPayday,
+              upcomingBillsCount: safeData.upcomingBills.length,
+              upcomingBillsAmount: safeData.billsBeforeSalary,
+              currency: safeData.currency,
+            });
+            sent++;
+          } catch (err) {
+            logCron('error', 'Failed to send weekend digest to user', {
+              userId: user.id,
+              error: err instanceof Error ? err.message : 'Unknown',
+            });
+          }
+        }
+        logCron('info', 'Friday weekend digest emails sent', { sent });
+      } catch (e) {
+        logCron('error', 'Error in weekend digest cron', {
+          error: e instanceof Error ? e.message : 'Unknown error',
+        });
+      }
+    },
+    { name: 'weekend-safe-to-spend-digest', noOverlap: true },
+  );
+  tasks.push(weekendDigestTask);
+
   return tasks;
 }
+

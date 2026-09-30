@@ -15,6 +15,36 @@ import * as transactionsController from './transactions.controller';
 export default async function transactionsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
 
+  fastify.post('/smart-parse', {
+    schema: {
+      tags: ['Transactions'],
+      summary: 'Smart parse natural text into structured transaction fields',
+      security: bearerAuth,
+      body: {
+        type: 'object',
+        properties: { text: { type: 'string', minLength: 1, maxLength: 300 } },
+        required: ['text'],
+      },
+      response: { 400: errorResponse, 401: errorResponse },
+    },
+    handler: transactionsController.smartParse,
+  });
+
+  fastify.post('/ai-command', {
+    schema: {
+      tags: ['Transactions'],
+      summary: 'Execute a natural language financial command or question',
+      security: bearerAuth,
+      body: {
+        type: 'object',
+        properties: { command: { type: 'string', minLength: 1, maxLength: 300 } },
+        required: ['command'],
+      },
+      response: { 400: errorResponse, 401: errorResponse },
+    },
+    handler: transactionsController.aiCommand,
+  });
+
   fastify.get('/', {
     schema: {
       tags: ['Transactions'],

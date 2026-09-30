@@ -13,15 +13,22 @@ model User {
   email                 String                 @unique
   password              String
   currency              String                 @default("USD")
+  paydayDay             Int                    @default(25)
+  paydayAmount          Decimal?               @db.Decimal(16, 2)
+  householdEnabled      Boolean                @default(false)
+  householdName         String?
   notifyBudgetAlerts    Boolean                @default(true)
   notifyMonthlyReports  Boolean                @default(true)
   notifyBillReminders   Boolean                @default(false)
+  notifyPaydayReminders Boolean                @default(true)
+  notifyWeeklyDigest    Boolean                @default(true)
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   
   transactions          Transaction[]
   categories            Category[]
   budgetGoals           BudgetGoal[]
+  envelopeTransfers     EnvelopeTransfer[]
   accounts              Account[]
   transfers             Transfer[]             @relation("UserTransfers")
   recurringTransactions RecurringTransaction[]
@@ -138,6 +145,24 @@ model BudgetGoal {
 
   @@unique([userId, categoryId, month, year])
 }
+
+model EnvelopeTransfer {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromCategoryId  String
+  toCategoryId    String
+  amount          Decimal  @db.Decimal(16, 2)
+  month           Int
+  year            Int
+  note            String?
+  createdAt       DateTime @default(now())
+
+  @@index([userId, month, year])
+  @@index([userId, fromCategoryId])
+  @@index([userId, toCategoryId])
+}
+
 
 model SavingsBucket {
   id          String   @id @default(cuid())

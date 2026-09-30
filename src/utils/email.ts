@@ -340,3 +340,259 @@ export const sendSavingsMilestoneEmail = async (payload: SavingsMilestonePayload
     html,
   });
 };
+
+// ─── 6. Payday / Incoming Salary Reminder ──────────────────────────────────────
+export type PaydayReminderPayload = {
+  to: string;
+  userName: string;
+  expectedSalary: number;
+  currentCash: number;
+  billsBeforeSalary: number;
+  safeToSpend: number;
+  safeDailySpending: number;
+  daysUntilPayday: number;
+  currency?: string;
+  isPaydayToday: boolean;
+};
+
+export const sendPaydayReminderEmail = async (payload: PaydayReminderPayload) => {
+  const {
+    to,
+    userName,
+    expectedSalary,
+    currentCash,
+    billsBeforeSalary,
+    safeToSpend,
+    safeDailySpending,
+    daysUntilPayday,
+    currency = 'USD',
+    isPaydayToday,
+  } = payload;
+
+  const fmt = (n: number) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(n);
+
+  const headline = isPaydayToday
+    ? `🎉 Payday is here!`
+    : `⏳ Payday is arriving in ${daysUntilPayday} ${daysUntilPayday === 1 ? 'day' : 'days'}`;
+
+  const html = emailWrapper(`
+    <p style="color: #E2E8F0; font-size: 20px; font-weight: 700; margin: 0 0 6px;">
+      ${headline}
+    </p>
+    <p style="color: ${TEXT_MUTED}; margin: 0 0 24px;">Hi ${userName}, here is your cash-flow and payday planning overview.</p>
+
+    <div style="background: ${BG_DARK}; border-radius: 12px; padding: 20px; margin-bottom: 24px; border: 1px solid #1E293B;">
+      <div style="margin-bottom: 16px;">
+        <span style="color: ${TEXT_MUTED}; font-size: 13px;">Expected Salary / Income</span>
+        <div style="color: #4ADE80; font-size: 28px; font-weight: 800; font-family: monospace;">
+          ${fmt(expectedSalary)}
+        </div>
+      </div>
+
+      <div style="border-top: 1px solid #1E293B; padding-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div>
+          <span style="color: ${TEXT_MUTED}; font-size: 12px;">Current Cash</span>
+          <div style="color: #E2E8F0; font-weight: 700; font-family: monospace;">${fmt(currentCash)}</div>
+        </div>
+        <div>
+          <span style="color: ${TEXT_MUTED}; font-size: 12px;">Upcoming Bills</span>
+          <div style="color: #F87171; font-weight: 700; font-family: monospace;">− ${fmt(billsBeforeSalary)}</div>
+        </div>
+      </div>
+
+      <div style="border-top: 1px solid #1E293B; margin-top: 14px; padding-top: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <span style="color: ${TEXT_MUTED}; font-size: 13px; font-weight: 600;">Safe to Spend:</span>
+          <span style="color: ${BRAND_COLOR}; font-size: 20px; font-weight: 800; font-family: monospace;">${fmt(safeToSpend)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
+          <span style="color: ${TEXT_MUTED}; font-size: 12px;">Safe daily rate:</span>
+          <span style="color: #E2E8F0; font-size: 13px; font-weight: 600; font-family: monospace;">${fmt(safeDailySpending)}/day</span>
+        </div>
+      </div>
+    </div>
+
+    <a href="${env.FRONTEND_URL}/budget-goals"
+       style="display: inline-block; background: ${BRAND_COLOR}; color: #fff; text-decoration: none;
+              padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; margin-right: 12px;">
+      Fill Your Envelopes →
+    </a>
+    <a href="${env.FRONTEND_URL}/dashboard"
+       style="display: inline-block; background: #1E293B; color: #E2E8F0; text-decoration: none;
+              padding: 12px 20px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+      View Dashboard
+    </a>
+  `);
+
+  return resend.emails.send({
+    from: env.EMAIL_FROM,
+    to: [to],
+    subject: isPaydayToday
+      ? `🎉 Payday is here! Expected: ${fmt(expectedSalary)} — ${env.APP_NAME}`
+      : `⏳ Payday in ${daysUntilPayday} days — ${env.APP_NAME}`,
+    text: `${headline}\nExpected: ${fmt(expectedSalary)}\nSafe to Spend: ${fmt(safeToSpend)} (${fmt(safeDailySpending)}/day).`,
+    html,
+  });
+};
+
+// ─── 7. Friday Weekend Safe-to-Spend Digest ────────────────────────────────────
+export type WeekendDigestPayload = {
+  to: string;
+  userName: string;
+  safeToSpend: number;
+  safeDailySpending: number;
+  daysUntilPayday: number;
+  upcomingBillsCount: number;
+  upcomingBillsAmount: number;
+  currency?: string;
+};
+
+export const sendWeekendSafeToSpendDigestEmail = async (payload: WeekendDigestPayload) => {
+  const {
+    to,
+    userName,
+    safeToSpend,
+    safeDailySpending,
+    daysUntilPayday,
+    upcomingBillsCount,
+    upcomingBillsAmount,
+    currency = 'USD',
+  } = payload;
+
+  const fmt = (n: number) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(n);
+
+  const html = emailWrapper(`
+    <p style="color: #E2E8F0; font-size: 20px; font-weight: 700; margin: 0 0 6px;">
+      ⚡ Can I Spend This Weekend?
+    </p>
+    <p style="color: ${TEXT_MUTED}; margin: 0 0 24px;">Hi ${userName}, here is your weekend Safe-to-Spend check.</p>
+
+    <div style="background: ${BG_DARK}; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #1E293B; text-align: center;">
+      <span style="color: ${TEXT_MUTED}; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Current Safe to Spend</span>
+      <div style="color: ${BRAND_COLOR}; font-size: 34px; font-weight: 800; font-family: monospace; margin: 6px 0;">
+        ${fmt(safeToSpend)}
+      </div>
+      <p style="color: #E2E8F0; font-size: 14px; margin: 0;">
+        Safe daily spending allowance: <strong style="color: #4ADE80; font-family: monospace;">${fmt(safeDailySpending)}/day</strong>
+      </p>
+      <p style="color: ${TEXT_MUTED}; font-size: 12px; margin: 8px 0 0;">
+        ${daysUntilPayday} days until your next salary cycle
+      </p>
+    </div>
+
+    ${
+      upcomingBillsCount > 0
+        ? `
+      <p style="color: ${TEXT_MUTED}; font-size: 13px; margin: 0 0 16px;">
+        💡 Remember: You have <strong style="color: #E2E8F0;">${upcomingBillsCount} upcoming bill${upcomingBillsCount === 1 ? '' : 's'}</strong> totaling <strong style="color: #F87171;">${fmt(upcomingBillsAmount)}</strong> scheduled before next payday.
+      </p>
+    `
+        : ''
+    }
+
+    <a href="${env.FRONTEND_URL}/dashboard"
+       style="display: inline-block; background: ${BRAND_COLOR}; color: #fff; text-decoration: none;
+              padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+      Open FinTrack Simulator →
+    </a>
+  `);
+
+  return resend.emails.send({
+    from: env.EMAIL_FROM,
+    to: [to],
+    subject: `⚡ Weekend Safe-to-Spend: ${fmt(safeToSpend)} available — ${env.APP_NAME}`,
+    text: `Weekend Safe-to-Spend: ${fmt(safeToSpend)} (${fmt(safeDailySpending)}/day) with ${daysUntilPayday} days until payday.`,
+    html,
+  });
+};
+
+// ─── 8. 1-Click Quick Snapshot Email (On Demand) ──────────────────────────────
+export type QuickSnapshotPayload = {
+  to: string;
+  userName: string;
+  currentCash: number;
+  billsBeforeSalary: number;
+  budgetCommitments: number;
+  savingsCommitment: number;
+  safeToSpend: number;
+  safeDailySpending: number;
+  daysUntilPayday: number;
+  nextPaydayDate: string;
+  currency?: string;
+};
+
+export const sendQuickSnapshotEmail = async (payload: QuickSnapshotPayload) => {
+  const {
+    to,
+    userName,
+    currentCash,
+    billsBeforeSalary,
+    budgetCommitments,
+    savingsCommitment,
+    safeToSpend,
+    safeDailySpending,
+    daysUntilPayday,
+    nextPaydayDate,
+    currency = 'USD',
+  } = payload;
+
+  const fmt = (n: number) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(n);
+
+  const html = emailWrapper(`
+    <p style="color: #E2E8F0; font-size: 20px; font-weight: 700; margin: 0 0 6px;">
+      📋 Your Instant Financial Snapshot
+    </p>
+    <p style="color: ${TEXT_MUTED}; margin: 0 0 24px;">Hi ${userName}, here is your real-time financial standing on demand.</p>
+
+    <div style="background: ${BG_DARK}; border-radius: 12px; padding: 20px; margin-bottom: 24px; border: 1px solid #1E293B;">
+      <table style="width: 100%; border-collapse: collapse; font-family: monospace; font-size: 14px;">
+        <tr>
+          <td style="padding: 10px 0; color: #E2E8F0;">Current Cash Available</td>
+          <td style="padding: 10px 0; text-align: right; color: #4ADE80; font-weight: 700;">${fmt(currentCash)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; color: ${TEXT_MUTED};">− Bills Before Next Salary</td>
+          <td style="padding: 10px 0; text-align: right; color: #F87171;">− ${fmt(billsBeforeSalary)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; color: ${TEXT_MUTED};">− Envelope Budget Commitments</td>
+          <td style="padding: 10px 0; text-align: right; color: #F87171;">− ${fmt(budgetCommitments)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; color: ${TEXT_MUTED};">− Savings Sinking Funds</td>
+          <td style="padding: 10px 0; text-align: right; color: #F87171;">− ${fmt(savingsCommitment)}</td>
+        </tr>
+        <tr style="border-top: 1px solid #334155;">
+          <td style="padding: 14px 0 4px; color: #E2E8F0; font-weight: 700;">Safe to Spend</td>
+          <td style="padding: 14px 0 4px; text-align: right; color: ${BRAND_COLOR}; font-size: 18px; font-weight: 800;">${fmt(safeToSpend)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 0; color: ${TEXT_MUTED}; font-size: 12px;">Daily Spending Allowance (${daysUntilPayday} days)</td>
+          <td style="padding: 4px 0; text-align: right; color: #E2E8F0; font-weight: 600;">${fmt(safeDailySpending)}/day</td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="color: ${TEXT_MUTED}; font-size: 13px; margin: 0 0 20px;">
+      Next Payday: <strong style="color: #E2E8F0;">${nextPaydayDate.slice(0, 10)}</strong> (${daysUntilPayday} days remaining)
+    </p>
+
+    <a href="${env.FRONTEND_URL}/dashboard"
+       style="display: inline-block; background: ${BRAND_COLOR}; color: #fff; text-decoration: none;
+              padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+      Open FinTrack Dashboard →
+    </a>
+  `);
+
+  return resend.emails.send({
+    from: env.EMAIL_FROM,
+    to: [to],
+    subject: `📋 Financial Snapshot: ${fmt(safeToSpend)} Safe to Spend — ${env.APP_NAME}`,
+    text: `Safe to Spend: ${fmt(safeToSpend)}\nSafe Daily: ${fmt(safeDailySpending)}/day\nCash: ${fmt(currentCash)}\nBills: -${fmt(billsBeforeSalary)}\nNext Payday: ${nextPaydayDate.slice(0, 10)}.`,
+    html,
+  });
+};
+

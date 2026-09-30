@@ -344,3 +344,254 @@ export const importTransactionsCsv = async (
     rows: finalRows.map((row) => row.status === 'valid' ? { ...row, status: 'imported' } : row),
   };
 };
+
+export const importStatementText = async (
+  userId: string,
+  rawText: string,
+  dryRun: boolean,
+  metadata: RequestMetadata,
+  defaultAccountId?: string,
+): Promise<ImportTransactionsResult> => {
+  const lines = rawText
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 3);
+  if (lines.length === 0) throw badRequest('No readable text found to import');
+
+  const [accounts, categories, existingTransactions] = await Promise.all([
+    prisma.account.findMany({ where: { userId }, select: { id: true, name: true, type: true } }),
+    prisma.category.findMany({ where: { userId }, select: { id: true, name: true } }),
+    prisma.transaction.findMany({
+      where: { userId },
+      select: { date: true, title: true, amount: true, type: true, categoryId: true, accountId: true },
+    }),
+  ]);
+
+  if (categories.length === 0) throw badRequest('Please create at least one category before importing');
+
+  const defaultAccount = defaultAccountId
+    ? accounts.find((a) => a.id === defaultAccountId)
+    : accounts.find((a) => ['BANK', 'CASH', 'WALLET'].includes(a.type)) || accounts[0];
+
+  const defaultCategory = categories[0];
+
+  const existingKeys = new Set(
+    existingTransactions.map((tx) =>
+      [
+        tx.date.toISOString().split('T')[0],
+        tx.title.trim().toLowerCase(),
+        Number(tx.amount).toFixed(2),
+        tx.type,
+      ].join('|'),
+    ),
+  );
+
+  const seenInUpload = new Set<string>();
+  const parsedRows: ParsedTransaction[] = [];
+  const previewRows: ImportPreviewRow[] = [];
+  let errorRows = 0;
+  let duplicateRows = 0;
+  let rowCounter = 0;
+
+  for (const line of lines) {
+    if (
+      /^(date|transaction|balance|description|statement|page|account number|opening balance|closing balance|serial|cheque)/i.test(
+        line,
+      )
+    ) {
+      continue;
+    }
+
+    rowCounter++;
+    const errors: string[] = [];
+
+    // 1. Extract Date
+    let date: Date | null = null;
+    let lineWithoutDate = line;
+    const dateMatch = line.match(
+      /\b(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]* \d{1,2}(?:, \d{4})?|\d{1,2} (?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(?: \d{4})?)\b/i,
+    );
+
+    if (dateMatch) {
+      const parsed = new Date(dateMatch[1]);
+      if (!isNaN(parsed.getTime())) {
+        date = parsed;
+        lineWithoutDate = line.replace(dateMatch[0], ' ');
+      }
+    }
+    if (!date) {
+      date = new Date();
+    }
+
+    // 2. Extract Amount
+    let amount = 0;
+    let lineWithoutAmount = lineWithoutDate;
+    const amountMatch = lineWithoutDate.match(
+      /(?:(?:lkr|rs|usd|\$|€|£)\.?\s*)?([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2}))(?:\s*(?:dr|cr))?\b/i,
+    );
+    if (amountMatch) {
+      const cleanNum = amountMatch[1].replace(/,/g, '');
+      amount = parseFloat(cleanNum);
+      lineWithoutAmount = lineWithoutDate.replace(amountMatch[0], ' ');
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      errors.push('Could not find a valid transaction amount');
+      errorRows++;
+      previewRows.push({
+        rowNumber: rowCounter,
+        status: 'error',
+        errors,
+        data: undefined,
+      });
+      continue;
+    }
+
+    // 3. Extract Type (Credit vs Debit)
+    const isCredit = /\b(cr|credit|salary|deposit|refund|interest|reversal)\b/i.test(line);
+    const type: TransactionType = isCredit ? TransactionType.INCOME : TransactionType.EXPENSE;
+
+    // 4. Extract Title / Merchant
+    let title = lineWithoutAmount
+      .replace(/\b(dr|cr|lkr|rs|usd|\$|ref|txn|pos|chq|transfer|payment|bill)\b/gi, ' ')
+      .replace(/[^\w\s-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!title || title.length < 2) {
+      title = isCredit ? 'Credit Transaction' : 'Debit Transaction';
+    }
+
+    // 5. Predict Category
+    const lowerTitle = title.toLowerCase();
+    let category = categories.find((c) => lowerTitle.includes(c.name.toLowerCase()));
+    if (!category) {
+      if (/food|keells|cargills|super|dining|restaurant|coffee|cafe|baker/i.test(lowerTitle)) {
+        category = categories.find((c) => /food|dining|groceries/i.test(c.name));
+      } else if (/dialog|mobitel|slt|ceb|water|bill|telecom/i.test(lowerTitle)) {
+        category = categories.find((c) => /utilities|bill/i.test(c.name));
+      } else if (/uber|pickme|fuel|petrol|transport/i.test(lowerTitle)) {
+        category = categories.find((c) => /transport/i.test(c.name));
+      } else if (/salary|bonus|payroll/i.test(lowerTitle)) {
+        category = categories.find((c) => /salary|income/i.test(c.name));
+      }
+    }
+    if (!category) {
+      category = defaultCategory;
+    }
+
+    const rowKey = [
+      date.toISOString().split('T')[0],
+      title.toLowerCase(),
+      amount.toFixed(2),
+      type,
+    ].join('|');
+
+    const rowObj: ParsedTransaction = {
+      rowNumber: rowCounter,
+      title,
+      amount,
+      type,
+      date,
+      categoryId: category.id,
+      accountId: defaultAccount?.id,
+      notes: `Imported from statement: "${line.slice(0, 80)}"`,
+      tagIds: [],
+      duplicateKey: rowKey,
+    };
+
+    if (existingKeys.has(rowKey) || seenInUpload.has(rowKey)) {
+      duplicateRows++;
+      previewRows.push({
+        rowNumber: rowCounter,
+        status: 'duplicate',
+        errors: ['Duplicate transaction'],
+        data: toPreviewData(rowObj),
+      });
+      continue;
+    }
+
+    seenInUpload.add(rowKey);
+    parsedRows.push(rowObj);
+    previewRows.push({
+      rowNumber: rowCounter,
+      status: 'valid',
+      errors: [],
+      data: toPreviewData(rowObj),
+    });
+  }
+
+  if (dryRun || parsedRows.length === 0) {
+    return {
+      dryRun,
+      totalRows: rowCounter,
+      validRows: parsedRows.length,
+      errorRows,
+      duplicateRows,
+      importedRows: 0,
+      skippedRows: duplicateRows,
+      rows: previewRows,
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    for (const row of parsedRows) {
+      await tx.transaction.create({
+        data: {
+          userId,
+          title: row.title,
+          amount: row.amount,
+          type: row.type,
+          date: row.date,
+          categoryId: row.categoryId,
+          accountId: row.accountId,
+          notes: row.notes,
+        },
+      });
+
+      if (row.accountId) {
+        await tx.account.update({
+          where: { id: row.accountId },
+          data: { balance: { increment: row.type === TransactionType.INCOME ? row.amount : -row.amount } },
+        });
+      }
+    }
+
+    await createAuditLog({
+      userId,
+      action: 'IMPORT_STATEMENT_TEXT',
+      entityType: 'Import',
+      ...metadata,
+      metadata: {
+        importedRows: parsedRows.length,
+        skippedRows: duplicateRows,
+        totalRows: rowCounter,
+      },
+    }, tx);
+
+    await createNotification({
+      userId,
+      type: NotificationType.IMPORT_COMPLETE,
+      title: 'Statement import completed',
+      message: `${parsedRows.length} transactions imported from statement text. ${duplicateRows} duplicates skipped.`,
+      entityType: 'Import',
+      metadata: {
+        importedRows: parsedRows.length,
+        skippedRows: duplicateRows,
+        totalRows: rowCounter,
+      },
+    }, tx);
+  });
+
+  return {
+    dryRun,
+    totalRows: rowCounter,
+    validRows: parsedRows.length,
+    errorRows,
+    duplicateRows,
+    importedRows: parsedRows.length,
+    skippedRows: duplicateRows,
+    rows: previewRows.map((row) => (row.status === 'valid' ? { ...row, status: 'imported' } : row)),
+  };
+};
+

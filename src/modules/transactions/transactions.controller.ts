@@ -5,8 +5,25 @@ import {
   transactionParamsSchema,
   transactionQuerySchema,
   updateTransactionSchema,
+  smartParseSchema,
+  aiCommandSchema,
 } from './transactions.schema';
 import * as transactionsService from './transactions.service';
+
+export const smartParse = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { userId } = getAuthContext(request);
+  const { text } = smartParseSchema.parse(request.body);
+  const result = await transactionsService.smartParseTransaction(userId, text);
+  return reply.send(result);
+};
+
+export const aiCommand = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { userId } = getAuthContext(request);
+  const { command } = aiCommandSchema.parse(request.body);
+  const result = await transactionsService.executeAiCommand(userId, command, getRequestMetadata(request));
+  return reply.send(result);
+};
+
 
 export const list = async (request: FastifyRequest, reply: FastifyReply) => {
   const { userId } = getAuthContext(request);

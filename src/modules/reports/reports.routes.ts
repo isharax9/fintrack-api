@@ -13,6 +13,41 @@ import * as reportsController from './reports.controller';
 export default async function reportsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
 
+  fastify.get('/safe-to-spend', {
+    schema: {
+      tags: ['Reports'],
+      summary: 'Get Safe-to-Spend calculation, days until payday, and financial timeline',
+      security: bearerAuth,
+      response: { 401: errorResponse },
+    },
+    handler: reportsController.safeToSpend,
+  });
+
+  fastify.post('/simulate-spend', {
+    schema: {
+      tags: ['Reports'],
+      summary: 'Simulate spending an amount and check safe-to-spend impact',
+      security: bearerAuth,
+      body: {
+        type: 'object',
+        properties: { amount: { type: 'number', minimum: 0.01 } },
+        required: ['amount'],
+      },
+      response: { 400: errorResponse, 401: errorResponse },
+    },
+    handler: reportsController.simulateSpend,
+  });
+
+  fastify.post('/email-summary', {
+    schema: {
+      tags: ['Reports'],
+      summary: 'Send instant Safe-to-Spend financial snapshot to user email',
+      security: bearerAuth,
+      response: { 200: { type: 'object', properties: { success: { type: 'boolean' }, message: { type: 'string' } } }, 401: errorResponse },
+    },
+    handler: reportsController.emailSummary,
+  });
+
   fastify.get('/summary', {
     schema: {
       tags: ['Reports'],
