@@ -5,7 +5,9 @@ import {
   googleAuthSchema,
   loginSchema,
   registerSchema,
+  resendVerificationSchema,
   resetPasswordSchema,
+  verifyEmailSchema,
   verifyOtpSchema,
 } from './auth.schema';
 import * as authService from './auth.service';
@@ -15,9 +17,21 @@ import { unauthorized } from '../../utils/errors';
 export const register = async (request: FastifyRequest, reply: FastifyReply) => {
   const data = registerSchema.parse(request.body);
   const result = await authService.register(data, getRequestMetadata(request));
+  return reply.code(201).send(result);
+};
+
+export const verifyEmail = async (request: FastifyRequest, reply: FastifyReply) => {
+  const data = verifyEmailSchema.parse(request.body);
+  const result = await authService.verifyEmail(data.email, data.otp, getRequestMetadata(request));
   setRefreshCookie(reply, result.refreshToken);
   const { refreshToken: _refreshToken, ...body } = result;
-  return reply.code(201).send(body);
+  return reply.send(body);
+};
+
+export const resendVerification = async (request: FastifyRequest, reply: FastifyReply) => {
+  const data = resendVerificationSchema.parse(request.body);
+  const result = await authService.resendVerificationEmail(data.email);
+  return reply.send(result);
 };
 
 export const login = async (request: FastifyRequest, reply: FastifyReply) => {

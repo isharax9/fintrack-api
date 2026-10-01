@@ -33,6 +33,15 @@ export const googleAuthSchema = z.object({
   idToken: z.string().min(1, 'Google ID token is required'),
 });
 
+export const verifyEmailSchema = z.object({
+  email: z.string().email(),
+  otp: z.string().length(6),
+});
+
+export const resendVerificationSchema = z.object({
+  email: z.string().email(),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RefreshInput = z.infer<typeof refreshSchema>;
@@ -40,3 +49,5 @@ export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type GoogleAuthInput = z.infer<typeof googleAuthSchema>;
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;

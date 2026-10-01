@@ -2,14 +2,14 @@ import { prisma } from '../../config/db';
 import { redis } from '../../config/redis';
 import { hashPassword, comparePassword } from '../../utils/hash';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../utils/jwt';
-import { sendOTP } from '../../utils/email';
+import { sendOTP, sendVerificationEmail } from '../../utils/email';
 import { RegisterInput, LoginInput, ResetPasswordInput } from './auth.schema';
 import jwt from 'jsonwebtoken';
 import { env } from '../../config/env';
 import crypto from 'crypto';
 import { createAuditLog } from '../audit/audit.service';
 import { hashOptional } from '../../utils/security';
-import { badRequest, conflict, unauthorized } from '../../utils/errors';
+import { badRequest, conflict, emailNotVerified, unauthorized } from '../../utils/errors';
 import { defaultCategories } from '../categories/defaultCategories';
 
 type SessionMetadata = {
@@ -79,32 +79,71 @@ const serializeUser = <T extends { password: string }>(user: T) => {
 export const register = async (input: RegisterInput, metadata: SessionMetadata = {}) => {
   const existingUser = await prisma.user.findUnique({ where: { email: input.email } });
   if (existingUser) {
+    if (existingUser.isEmailVerified === false) {
+      // User registered previously but never verified their account. Resend verification code
+      const otp = crypto.randomInt(100000, 1000000).toString();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+      await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          emailVerificationCode: otp,
+          emailVerificationExpiresAt: expiresAt,
+        },
+      });
+      if (redis) {
+        await redis.set(`verify_email:${input.email}`, otp, 'EX', 15 * 60);
+      }
+      try {
+        await sendVerificationEmail(input.email, otp, existingUser.name);
+      } catch (err) {
+        console.error('Failed to send verification email:', err);
+      }
+      return {
+        requiresVerification: true,
+        email: input.email,
+        message: 'A verification code has been sent to your email to activate your account.',
+      };
+    }
     throw conflict('Email already in use');
   }
 
   const hashedPassword = await hashPassword(input.password);
-  
+  const otp = crypto.randomInt(100000, 1000000).toString();
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
   const user = await prisma.$transaction(async (tx) => {
     const created = await tx.user.create({
       data: {
         name: input.name,
         email: input.email,
         password: hashedPassword,
-      }
+        isEmailVerified: false,
+        emailVerificationCode: otp,
+        emailVerificationExpiresAt: expiresAt,
+      },
     });
 
     await tx.category.createMany({
-      data: defaultCategories.map(c => ({
+      data: defaultCategories.map((c) => ({
         ...c,
         userId: created.id,
-        isDefault: true
-      }))
+        isDefault: true,
+      })),
     });
 
     return created;
   });
 
-  const tokens = await createSessionTokens(user.id, metadata);
+  if (redis) {
+    await redis.set(`verify_email:${input.email}`, otp, 'EX', 15 * 60);
+  }
+
+  try {
+    await sendVerificationEmail(input.email, otp, user.name);
+  } catch (err) {
+    console.error('Failed to send verification email:', err);
+  }
+
   await createAuditLog({
     userId: user.id,
     action: 'AUTH_REGISTER',
@@ -115,7 +154,97 @@ export const register = async (input: RegisterInput, metadata: SessionMetadata =
     requestId: metadata.requestId,
   });
 
-  return { ...tokens, user: serializeUser(user) };
+  return {
+    requiresVerification: true,
+    email: user.email,
+    message: 'Verification code sent to your email. Please verify to activate your account.',
+  };
+};
+
+export const verifyEmail = async (email: string, otp: string, metadata: SessionMetadata = {}) => {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) throw badRequest('Invalid or expired verification code');
+
+  if (user.isEmailVerified) {
+    const tokens = await createSessionTokens(user.id, metadata);
+    return { ...tokens, user: serializeUser(user), message: 'Account is already verified' };
+  }
+
+  let isValid = false;
+  if (redis) {
+    const stored = await redis.get(`verify_email:${email}`);
+    if (stored && stored === otp.trim()) {
+      isValid = true;
+      await redis.del(`verify_email:${email}`);
+    }
+  }
+
+  if (!isValid && user.emailVerificationCode) {
+    const notExpired = user.emailVerificationExpiresAt && user.emailVerificationExpiresAt > new Date();
+    if (notExpired && user.emailVerificationCode === otp.trim()) {
+      isValid = true;
+    }
+  }
+
+  if (!isValid) {
+    throw badRequest('Invalid or expired verification code');
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      isEmailVerified: true,
+      emailVerificationCode: null,
+      emailVerificationExpiresAt: null,
+    },
+  });
+
+  const tokens = await createSessionTokens(user.id, metadata);
+  await createAuditLog({
+    userId: user.id,
+    action: 'AUTH_EMAIL_VERIFIED',
+    entityType: 'User',
+    entityId: user.id,
+    ip: metadata.ip,
+    userAgent: metadata.userAgent,
+    requestId: metadata.requestId,
+  });
+
+  return { ...tokens, user: serializeUser(updatedUser), message: 'Email verified successfully. Account activated!' };
+};
+
+export const resendVerificationEmail = async (email: string) => {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    return { message: 'If an account exists with this email, a verification code has been sent.' };
+  }
+
+  if (user.isEmailVerified) {
+    throw badRequest('This account is already verified. Please log in.');
+  }
+
+  const otp = crypto.randomInt(100000, 1000000).toString();
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      emailVerificationCode: otp,
+      emailVerificationExpiresAt: expiresAt,
+    },
+  });
+
+  if (redis) {
+    await redis.set(`verify_email:${email}`, otp, 'EX', 15 * 60);
+  }
+
+  try {
+    await sendVerificationEmail(email, otp, user.name);
+  } catch (err) {
+    console.error('Failed to resend verification email:', err);
+  }
+
+  return { message: 'A new verification code has been sent to your email.' };
 };
 
 export const login = async (input: LoginInput, metadata: SessionMetadata = {}) => {
@@ -124,6 +253,13 @@ export const login = async (input: LoginInput, metadata: SessionMetadata = {}) =
 
   const isValid = await comparePassword(input.password, user.password);
   if (!isValid) throw unauthorized('Invalid credentials');
+
+  if (user.isEmailVerified === false) {
+    try {
+      await resendVerificationEmail(user.email);
+    } catch {}
+    throw emailNotVerified('Please verify your email address to activate your account. A new verification code has been sent to your inbox.');
+  }
 
   const tokens = await createSessionTokens(user.id, metadata);
   await createAuditLog({
@@ -211,6 +347,7 @@ export const loginWithGoogle = async (idToken: string, metadata: SessionMetadata
           name: displayName,
           email: normalizedEmail,
           password: hashedPassword,
+          isEmailVerified: true,
         },
       });
 

@@ -26,10 +26,20 @@ export default async function authRoutes(fastify: FastifyInstance) {
     required: ['accessToken', 'user'],
   };
 
+  const registerResponse = {
+    type: 'object',
+    properties: {
+      requiresVerification: { type: 'boolean' },
+      email: { type: 'string' },
+      message: { type: 'string' },
+    },
+    required: ['requiresVerification', 'email', 'message'],
+  };
+
   fastify.post('/register', {
     schema: {
       tags: ['Auth'],
-      summary: 'Register a user',
+      summary: 'Register a user (sends verification email)',
       body: {
         type: 'object',
         properties: {
@@ -39,9 +49,54 @@ export default async function authRoutes(fastify: FastifyInstance) {
         },
         required: ['name', 'email', 'password'],
       },
-      response: { 201: authResponse, 400: errorResponse, 409: errorResponse },
+      response: { 201: registerResponse, 400: errorResponse, 409: errorResponse },
     },
     handler: authController.register,
+  });
+
+  const verifyEmailResponse = {
+    type: 'object',
+    properties: {
+      accessToken: { type: 'string' },
+      user: userResponse,
+      message: { type: 'string' },
+    },
+    required: ['accessToken', 'user'],
+  };
+
+  fastify.post('/verify-email', {
+    config: { rateLimit: verifyOtpRateLimit },
+    schema: {
+      tags: ['Auth'],
+      summary: 'Verify email address and activate account',
+      body: {
+        type: 'object',
+        properties: {
+          email: { type: 'string', format: 'email' },
+          otp: { type: 'string', minLength: 6, maxLength: 6 },
+        },
+        required: ['email', 'otp'],
+      },
+      response: { 200: verifyEmailResponse, 400: errorResponse },
+    },
+    handler: authController.verifyEmail,
+  });
+
+  fastify.post('/resend-verification', {
+    config: { rateLimit: forgotPasswordRateLimit },
+    schema: {
+      tags: ['Auth'],
+      summary: 'Resend account activation code',
+      body: {
+        type: 'object',
+        properties: {
+          email: { type: 'string', format: 'email' },
+        },
+        required: ['email'],
+      },
+      response: { 200: messageResponse, 400: errorResponse },
+    },
+    handler: authController.resendVerification,
   });
 
   fastify.post('/login', {

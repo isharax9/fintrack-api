@@ -24,6 +24,9 @@ export const unauthorized = (message = 'Unauthorized') =>
 export const forbidden = (message = 'Forbidden') =>
   new AppError(403, 'FORBIDDEN', message);
 
+export const emailNotVerified = (message = 'Please verify your email address to activate your account.') =>
+  new AppError(403, 'EMAIL_NOT_VERIFIED', message);
+
 export const notFound = (message = 'Not found') =>
   new AppError(404, 'NOT_FOUND', message);
 

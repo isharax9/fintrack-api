@@ -65,6 +65,40 @@ export const sendOTP = async (email: string, otp: string) => {
   }
 };
 
+// ─── 1b. Account Activation Email Verification ─────────────────────────────────
+export const sendVerificationEmail = async (email: string, otp: string, name?: string) => {
+  const html = emailWrapper(`
+    <p style="color: #E2E8F0; font-size: 20px; font-weight: 700; margin: 0 0 8px;">Welcome to ${env.APP_NAME}!</p>
+    <p style="color: ${TEXT_MUTED}; margin: 0 0 24px;">Hi ${name || 'there'}, thank you for signing up. Please verify your email address to activate your account:</p>
+    <div style="font-size: 38px; font-weight: 800; letter-spacing: 12px; text-align: center;
+                padding: 28px; background: ${BG_DARK}; border-radius: 12px; margin: 0 0 24px;
+                color: ${BRAND_COLOR}; border: 1px solid #1E293B;">
+      ${otp}
+    </div>
+    <p style="color: ${TEXT_MUTED}; font-size: 14px; margin: 0;">
+      This verification code is valid for <strong style="color: #E2E8F0;">15 minutes</strong>.
+      Enter this code on the activation page to start using your account.
+    </p>
+  `);
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: env.EMAIL_FROM,
+      to: [email],
+      subject: `Verify your email address — ${env.APP_NAME}`,
+      text: `Your ${env.APP_NAME} verification code is: ${otp}. It is valid for 15 minutes.`,
+      html,
+    });
+
+    if (error) throw new Error(`Resend ${error.name}: ${error.message}`);
+    console.log(`Verification email sent — id: ${data?.id}`);
+    return data;
+  } catch (err) {
+    console.error(`Failed to send verification email to ${email}:`, err);
+    throw err;
+  }
+};
+
 // ─── 2. Budget Alert ────────────────────────────────────────────────────────────
 export type BudgetAlertPayload = {
   to: string;

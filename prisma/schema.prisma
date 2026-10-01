@@ -13,6 +13,9 @@ model User {
   email                 String                 @unique
   password              String
   currency              String                 @default("USD")
+  isEmailVerified       Boolean                @default(false)
+  emailVerificationCode String?
+  emailVerificationExpiresAt DateTime?
   paydayDay             Int                    @default(25)
   paydayAmount          Decimal?               @db.Decimal(16, 2)
   householdEnabled      Boolean                @default(false)

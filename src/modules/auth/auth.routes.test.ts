@@ -13,6 +13,8 @@ const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
   logout: vi.fn(),
   logoutAll: vi.fn(),
+  verifyEmail: vi.fn(),
+  resendVerificationEmail: vi.fn(),
 }));
 
 vi.mock('../../utils/jwt', () => ({
@@ -31,6 +33,8 @@ vi.mock('./auth.service', () => ({
   generateOtp: vi.fn(),
   verifyOtp: vi.fn(),
   resetPassword: vi.fn(),
+  verifyEmail: mocks.verifyEmail,
+  resendVerificationEmail: mocks.resendVerificationEmail,
 }));
 
 const buildTestApp = async () => {
@@ -233,6 +237,110 @@ describe('auth routes', () => {
       'valid-google-id-token',
       expect.any(Object),
     );
+
+    await app.close();
+  });
+
+  it('registers user and returns requiresVerification response', async () => {
+    const app = await buildTestApp();
+    mocks.register.mockResolvedValue({
+      requiresVerification: true,
+      email: 'newuser@example.com',
+      message: 'Verification code sent to your email. Please verify to activate your account.',
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      payload: {
+        name: 'New User',
+        email: 'newuser@example.com',
+        password: 'password123',
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toEqual({
+      requiresVerification: true,
+      email: 'newuser@example.com',
+      message: expect.stringContaining('Verification code sent'),
+    });
+    expect(mocks.register).toHaveBeenCalledWith(
+      {
+        name: 'New User',
+        email: 'newuser@example.com',
+        password: 'password123',
+      },
+      expect.any(Object),
+    );
+
+    await app.close();
+  });
+
+  it('verifies email, sets refresh cookie and returns auth session', async () => {
+    const app = await buildTestApp();
+    mocks.verifyEmail.mockResolvedValue({
+      accessToken: 'access-token-verified',
+      refreshToken: 'refresh-token-verified',
+      message: 'Email verified successfully. Account activated!',
+      user: {
+        id: 'user_new',
+        name: 'New User',
+        email: 'newuser@example.com',
+        currency: 'USD',
+        isEmailVerified: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/auth/verify-email',
+      payload: {
+        email: 'newuser@example.com',
+        otp: '123456',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['set-cookie']).toContain('fintrack_refresh=refresh-token-verified');
+    expect(response.json()).toEqual({
+      message: 'Email verified successfully. Account activated!',
+      accessToken: 'access-token-verified',
+      user: expect.objectContaining({
+        id: 'user_new',
+        email: 'newuser@example.com',
+      }),
+    });
+    expect(mocks.verifyEmail).toHaveBeenCalledWith(
+      'newuser@example.com',
+      '123456',
+      expect.any(Object),
+    );
+
+    await app.close();
+  });
+
+  it('resends verification code successfully', async () => {
+    const app = await buildTestApp();
+    mocks.resendVerificationEmail.mockResolvedValue({
+      message: 'A new verification code has been sent to your email.',
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/auth/resend-verification',
+      payload: {
+        email: 'newuser@example.com',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      message: 'A new verification code has been sent to your email.',
+    });
+    expect(mocks.resendVerificationEmail).toHaveBeenCalledWith('newuser@example.com');
 
     await app.close();
   });
