@@ -38,6 +38,7 @@ model User {
   refreshSessions       RefreshSession[]
   auditLogs             AuditLog[]
   notifications         Notification[]
+  tags                  Tag[]
 }
 
 model Account {
@@ -110,10 +111,12 @@ model Transaction {
 model Tag {
   id           String        @id @default(cuid())
   userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   name         String
   transactions Transaction[] @relation("TransactionToTag")
   
   @@unique([userId, name])
+  @@index([userId])
 }
 
 model Category {
